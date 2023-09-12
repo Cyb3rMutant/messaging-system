@@ -24,4 +24,10 @@ impl Container {
     pub fn get(&mut self, name: &str) -> &mut Client {
         self.clients.get_mut(name).unwrap()
     }
+
+    pub fn print(&self) {
+        for c in self.clients.keys() {
+            println!("{:?}", c);
+        }
+    }
 }

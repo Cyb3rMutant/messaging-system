@@ -1,6 +1,6 @@
 mod client;
 
-pub mod container;
+mod container;
 
 mod message;
 
@@ -8,34 +8,44 @@ mod commands;
 
 use crate::{client::Client, commands::Command, container::Container};
 
-use tokio::{
-    net::TcpStream,
-    sync::{mpsc, oneshot},
-};
+use tokio::{io::AsyncBufReadExt, net::TcpStream, sync::mpsc};
 
 pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     use Command::*;
-    let (sender, rx) = oneshot::channel();
-    tx.send(Add { stream, sender }).await.unwrap();
-    let name = rx.await.unwrap();
+    let (client, mut reader) = Client::new(stream).await;
+    let name = client.name.clone();
+
+    tx.send(Add { client }).await.unwrap();
 
     loop {
         println!("looping - {name}");
-        let (sender, rx) = oneshot::channel();
-        tx.send(Receive {
-            name: name.clone(),
-            sender,
-        })
-        .await
-        .unwrap();
-        match rx.await.unwrap() {
-            Some(m) => {
-                // Send messages to all clients.
-                let (name, message) = m.parse();
-                tx.send(Send { name, message }).await.unwrap();
+        let mut buf = String::new();
+        let message = match reader.read_line(&mut buf).await {
+            Ok(0) => {
+                println!("recieved nothing");
+                continue;
             }
-            _ => break,
-        }
+            Ok(_) => {
+                println!("got: {buf}");
+                let x = buf.split_once(':');
+                println!("after spliting: {x:?}");
+
+                match x {
+                    Some((n, m)) if !n.is_empty() => {
+                        message::Message::new(name.clone(), n.to_owned(), m.to_owned())
+                    }
+                    _ => {
+                        println!("error parsing message");
+                        continue;
+                    }
+                }
+            }
+            Err(e) => {
+                println!("{:?}", e);
+                break;
+            }
+        };
+        tx.send(Send { message }).await.unwrap();
     }
 
     // Remove the disconnected client from the list of clients.
@@ -43,29 +53,25 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     tx.send(Remove { name }).await.unwrap();
 }
 
-pub async fn manager(mut clients: Container, mut rx: mpsc::Receiver<Command>) {
+pub async fn manager(mut rx: mpsc::Receiver<Command>) {
+    let mut clients = Container::new();
     use Command::*;
     while let Some(command) = rx.recv().await {
         match command {
-            Add { stream, sender } => {
-                let client = Client::new(stream).await;
-                let client_name = client.name.clone();
+            Add { client } => {
                 clients.push(client);
-                sender.send(client_name).unwrap();
             }
-            Receive { name, sender } => {
-                let mut buf = String::new();
-                let data = clients.get(&name).receive(&mut buf).await;
-
-                sender.send(data).unwrap();
-            }
-            Send { name, message } => {
+            Send { message } => {
+                let (name, message) = message.parse();
                 let receiver = clients.get(&name);
+                println!("sending '{message}' to {name}");
                 receiver.send(&message).await;
+                println!("message '{message}' sent to {name}");
             }
             Remove { name } => {
                 clients.remove(&name);
             }
         };
+        clients.print();
     }
 }

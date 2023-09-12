@@ -1,22 +1,8 @@
-use tokio::{net::TcpStream, sync::oneshot};
-
-use crate::message::Message;
+use crate::{client::Client, message::Message};
 
 #[derive(Debug)]
 pub enum Command {
-    Add {
-        stream: TcpStream,
-        sender: oneshot::Sender<String>,
-    },
-    Receive {
-        name: String,
-        sender: oneshot::Sender<Option<Message>>,
-    },
-    Send {
-        name: String,
-        message: String,
-    },
-    Remove {
-        name: String,
-    },
+    Add { client: Client },
+    Send { message: Message },
+    Remove { name: String },
 }

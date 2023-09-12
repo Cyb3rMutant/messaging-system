@@ -1,4 +1,4 @@
-use ms::{container::Container, manager, process};
+use ms::{manager, process};
 use tokio::{net::TcpListener, sync::mpsc};
 
 #[tokio::main]
@@ -9,8 +9,7 @@ async fn main() {
     let (tx, rx) = mpsc::channel(32);
 
     tokio::spawn(async move {
-        let clients = Container::new();
-        manager(clients, rx).await;
+        manager(rx).await;
     });
 
     loop {
