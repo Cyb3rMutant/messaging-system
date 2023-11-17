@@ -26,18 +26,14 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 continue;
             }
             Ok(_) => {
-                println!("got: {buf}");
-                let x = buf.split_once(':');
-                println!("after spliting: {x:?}");
-
-                match x {
-                    Some((n, m)) if !n.is_empty() => {
-                        message::Message::new(name.clone(), n.to_owned(), m.to_owned())
-                    }
-                    _ => {
-                        println!("error parsing message");
-                        continue;
-                    }
+                let Some((command, content)) = buf.split_once(';') else {
+                        break;
+                    };
+                match command {
+                    "SND" => Command::send(content, name.clone()),
+                    "CNT" => Command::connect(content, name.clone()),
+                    "GET" => Ok(Command::GET { name: name.clone() }),
+                    _ => break,
                 }
             }
             Err(e) => {
@@ -45,7 +41,14 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 break;
             }
         };
-        tx.send(Send { message }).await.unwrap();
+
+        match message {
+            Ok(message) => tx.send(message).await.unwrap(),
+            _ => {
+                println!("parse error");
+                break;
+            }
+        }
     }
 
     // Remove the disconnected client from the list of clients.
@@ -64,9 +67,21 @@ pub async fn manager(mut rx: mpsc::Receiver<Command>) {
             Send { message } => {
                 let (name, message) = message.parse();
                 let receiver = clients.get(&name);
-                println!("sending '{message}' to {name}");
                 receiver.send(&message).await;
-                println!("message '{message}' sent to {name}");
+            }
+            Connect { me, other } => {
+                {
+                    let me = clients.get(&me);
+                    me.add_friend(&other);
+                }
+                {
+                    let other = clients.get(&other);
+                    other.add_friend(&me);
+                }
+            }
+            GET { name } => {
+                let names = clients.get_all();
+                clients.get(&name).send(&names).await;
             }
             Remove { name } => {
                 clients.remove(&name);

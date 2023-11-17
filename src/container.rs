@@ -30,4 +30,15 @@ impl Container {
             println!("{:?}", c);
         }
     }
+
+    pub fn get_all(&self) -> String {
+        let mut list = String::new();
+
+        for c in self.clients.keys() {
+            list += c;
+            list.push(' ');
+        }
+
+        list
+    }
 }
