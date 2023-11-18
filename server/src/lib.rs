@@ -41,6 +41,7 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 break;
             }
         };
+        println!("{message:?}");
 
         match message {
             Ok(message) => tx.send(message).await.unwrap(),

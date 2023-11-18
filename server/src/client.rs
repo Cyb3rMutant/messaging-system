@@ -18,7 +18,7 @@ impl<'a> Client {
         let mut reader = BufReader::new(reader);
 
         // Prompt the client for their name.
-        writer.write_all(b"Enter your name: ").await.unwrap();
+        writer.write_all(b"Enter your name: \n").await.unwrap();
         reader.read_line(&mut name).await.unwrap();
 
         let name = name.trim().to_string();
