@@ -35,8 +35,8 @@ impl Container {
         let mut list = String::new();
 
         for c in self.clients.keys() {
+            list.push(';');
             list += c;
-            list.push(' ');
         }
 
         list

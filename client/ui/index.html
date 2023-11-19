@@ -9,14 +9,30 @@
   </head>
 
   <body>
+    <a href="login.html">Go to Login Page</a>
     <h1 id="header">Welcome from Tauri!</h1>
-    <div id="container">
-      <!-- Existing divs will be appended here -->
+    <div id="no">
+      <form id="loginForm">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required />
+
+        <!-- <label for="password">Password:</label> -->
+        <!-- <input type="password" id="password" name="password" required /> -->
+
+        <button type="button" onclick="login()">Login</button>
+      </form>
     </div>
+    <div id="yes" style="display: none">
+      <div id="container">
+        <!-- Existing divs will be appended here -->
+      </div>
 
-    <label for="message">Message:</label>
-    <input type="text" id="message" placeholder="Type your message here" />
+      <button onclick="getUsers()">get users</button>
+      <div id="radioDiv"></div>
+      <label for="message">Message:</label>
+      <input type="text" id="message" placeholder="Type your message here" />
 
-    <button onclick="sendMessage()">Send Message</button>
+      <button onclick="sendMessage()">Send Message</button>
+    </div>
   </body>
 </html>

@@ -1,5 +1,7 @@
+use std::time::Duration;
+
 use server::{manager, process};
-use tokio::{net::TcpListener, sync::mpsc};
+use tokio::{net::TcpListener, sync::mpsc, time::sleep};
 
 #[tokio::main]
 async fn main() {
@@ -17,6 +19,7 @@ async fn main() {
         println!("{stream:?} {addr:?}");
         let tx = tx.clone();
 
+        sleep(Duration::from_secs(2)).await;
         tokio::spawn(async move {
             process(stream, tx).await;
         });

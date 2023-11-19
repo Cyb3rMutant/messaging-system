@@ -13,6 +13,9 @@ impl Message {
         }
     }
     pub fn parse(self) -> (String, String) {
-        (self.receiver, format!("{}: {}", self.sender, self.content))
+        (
+            self.receiver,
+            format!("MSG;{};{}", self.sender, self.content),
+        )
     }
 }

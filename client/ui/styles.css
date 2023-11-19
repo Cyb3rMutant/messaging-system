@@ -1,12 +1,12 @@
 #container {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 10px;
 }
 
 .dynamic-div {
-    border: 1px solid #000;
-    margin-bottom: 10px;
-    padding: 10px;
+  border: 1px solid #000;
+  margin-bottom: 10px;
+  padding: 10px;
 }

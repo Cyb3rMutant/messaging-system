@@ -1,9 +1,24 @@
 const { listen } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.tauri;
 
-listen("received", (message) => {
+// messages
+function sendMessage() {
+  // Get the value from the input
+  var messageInput = document.getElementById("message");
+  var messageText = messageInput.value;
+  var user = document.querySelector('input[name="users"]:checked').value;
+
+  // Clear the input
+  messageInput.value = "";
+
+  console.log(messageText, user);
+  invoke("send", { user: user, message: messageText });
+}
+
+listen("MSG", (message) => {
   window.header.innerHTML = message.payload;
 
+  console.log(message);
   var newDiv = document.createElement("div");
   newDiv.className = "dynamic-div";
   newDiv.textContent = message.payload;
@@ -16,13 +31,58 @@ listen("received", (message) => {
     document.getElementById("container").scrollHeight;
 });
 
-function sendMessage() {
-  // Get the value from the input
-  var messageText = document.getElementById("message").value;
+// get users
+function getUsers() {
+  console.log("getting users");
 
-  // Clear the input
-  messageText.value = "";
-
-  console.log(messageText, typeof messageText);
-  invoke("send", { message: messageText });
+  invoke("getusers");
 }
+
+listen("USR", (message) => {
+  var arr = message.payload;
+
+  console.log(message, typeof message.payload);
+
+  var div = document.getElementById("radioDiv");
+  div.innerHTML = ""; // clear the div
+
+  for (var i = 0; i < arr.length; i++) {
+    var radioButton = document.createElement("input");
+    radioButton.type = "radio";
+    radioButton.name = "users";
+    radioButton.id = "radio" + i;
+    radioButton.value = arr[i];
+
+    var label = document.createElement("label");
+    label.htmlFor = radioButton.id;
+    label.appendChild(document.createTextNode(arr[i]));
+
+    div.appendChild(radioButton);
+    div.appendChild(label);
+  }
+});
+
+// login
+function login() {
+  var username = document.getElementById("username").value;
+
+  console.log("Username:", username);
+
+  invoke("login", { username: username });
+}
+
+listen("LGN", (message) => {
+  var logged = message.payload;
+
+  console.log(message);
+  if (logged) {
+    var div = document.getElementById("no");
+    div.style.display = "none";
+    var div = document.getElementById("yes");
+    div.style.display = "block";
+  }
+});
+
+listen("OTH", (message) => {
+  console.log(message);
+});

@@ -23,7 +23,7 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
         let message = match reader.read_line(&mut buf).await {
             Ok(0) => {
                 println!("recieved nothing");
-                continue;
+                break;
             }
             Ok(_) => {
                 let Some((command, content)) = buf.split_once(';') else {
@@ -67,6 +67,7 @@ pub async fn manager(mut rx: mpsc::Receiver<Command>) {
             }
             Send { message } => {
                 let (name, message) = message.parse();
+                println!("{name:?} {message:?}");
                 let receiver = clients.get(&name);
                 receiver.send(&message).await;
             }
@@ -82,6 +83,7 @@ pub async fn manager(mut rx: mpsc::Receiver<Command>) {
             }
             GET { name } => {
                 let names = clients.get_all();
+                let names = format!("USR{names}\n");
                 clients.get(&name).send(&names).await;
             }
             Remove { name } => {

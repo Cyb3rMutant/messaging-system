@@ -7,58 +7,67 @@ use std::sync::{Arc, Mutex};
 
 use tauri::{AppHandle, Manager, State};
 
-async fn read_messages(app: AppHandle, stream: TcpStream) {
-    let mut reader = BufReader::new(&stream);
-
+async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
     loop {
         let mut buf = String::new();
         if reader.read_line(&mut buf).unwrap() == 0 {
             break;
         }
-        let _ = app.emit_all("received", buf);
+        println!("{:?}", buf);
+        let (command, content) = buf.trim().split_once(';').unwrap();
+        let _ = match command {
+            "MSG" => app.emit_all("MSG", content.replace(";", ": ")),
+            "USR" => app.emit_all("USR", content.split(";").collect::<Vec<&str>>()),
+            "LGN" => app.emit_all("LGN", true),
+            _ => app.emit_all("OTH", content),
+        };
     }
 }
 
 struct Sender(Arc<Mutex<TcpStream>>);
 
 #[tauri::command]
-fn send(message: String, sender: State<'_, Sender>) {
+fn send(user: String, message: String, sender: State<'_, Sender>) {
     let mut writer = sender.0.lock().unwrap();
 
-    let mut message = message;
-    message.push('\n');
-
     writer
-        .write_all(message.as_bytes())
+        .write_all(format!("SND;{};{}\n", user, message).as_bytes())
+        .expect("Failed to send message to the server");
+}
+
+#[tauri::command]
+fn getusers(sender: State<'_, Sender>) {
+    let mut writer = sender.0.lock().unwrap();
+    writer
+        .write_all(format!("GET;\n").as_bytes())
+        .expect("Failed to send message to the server");
+}
+
+#[tauri::command]
+fn login(username: String, sender: State<'_, Sender>) {
+    let mut writer = sender.0.lock().unwrap();
+    writer
+        .write_all(format!("{}\n", username).as_bytes())
         .expect("Failed to send message to the server");
 }
 
 fn main() {
     let stream = TcpStream::connect("127.0.0.1:8080").unwrap();
 
-    let mut writer = stream
-        .try_clone()
-        .expect("Failed to clone stream for writing");
+    let writer = stream.try_clone().unwrap();
 
-    let mut reader = BufReader::new(&stream);
-    reader
-        .read_line(&mut String::new())
-        .expect("Failed to read welcome message");
-
-    writer
-        .write_all("tester\n".as_bytes())
-        .expect("Failed to send the name to the server");
+    let reader = BufReader::new(stream);
 
     tauri::Builder::default()
         .setup(|app| {
             let app_handle = app.app_handle();
 
-            tauri::async_runtime::spawn(read_messages(app_handle, stream));
+            tauri::async_runtime::spawn(read_messages(app_handle, reader));
 
             Ok(())
         })
         .manage(Sender(Arc::new(Mutex::new(writer))))
-        .invoke_handler(tauri::generate_handler![send])
+        .invoke_handler(tauri::generate_handler![send, getusers, login])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
