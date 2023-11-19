@@ -1,50 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-  <style>
-    #container {
-      max-height: 200px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      padding: 10px;
-    }
 
-    .dynamic-div {
-      border: 1px solid #000;
-      margin-bottom: 10px;
-      padding: 10px;
-    }
-  </style>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js"></script>
   </head>
+
   <body>
     <h1 id="header">Welcome from Tauri!</h1>
     <div id="container">
       <!-- Existing divs will be appended here -->
     </div>
 
+    <label for="message">Message:</label>
+    <input type="text" id="message" placeholder="Type your message here" />
 
-
-
-<script>
-  // access the pre-bundled global API functions
-  const { listen } = window.__TAURI__.event
-
-  listen("received", (message) => {
-    window.header.innerHTML = message.payload
-
-    var newDiv = document.createElement("div");
-    newDiv.className = "dynamic-div";
-    newDiv.textContent = message.payload;
-
-    // Append the new div to the container
-    document.getElementById("container").appendChild(newDiv);
-
-    // Scroll to the bottom to keep the new div in view
-    document.getElementById("container").scrollTop = document.getElementById("container").scrollHeight;
-  })
-</script>
-</body>
+    <button onclick="sendMessage()">Send Message</button>
+  </body>
 </html>

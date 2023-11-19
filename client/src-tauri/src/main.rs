@@ -3,8 +3,9 @@
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
+use std::sync::{Arc, Mutex};
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, State};
 
 async fn read_messages(app: AppHandle, stream: TcpStream) {
     let mut reader = BufReader::new(&stream);
@@ -16,6 +17,20 @@ async fn read_messages(app: AppHandle, stream: TcpStream) {
         }
         let _ = app.emit_all("received", buf);
     }
+}
+
+struct Sender(Arc<Mutex<TcpStream>>);
+
+#[tauri::command]
+fn send(message: String, sender: State<'_, Sender>) {
+    let mut writer = sender.0.lock().unwrap();
+
+    let mut message = message;
+    message.push('\n');
+
+    writer
+        .write_all(message.as_bytes())
+        .expect("Failed to send message to the server");
 }
 
 fn main() {
@@ -42,6 +57,8 @@ fn main() {
 
             Ok(())
         })
+        .manage(Sender(Arc::new(Mutex::new(writer))))
+        .invoke_handler(tauri::generate_handler![send])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
