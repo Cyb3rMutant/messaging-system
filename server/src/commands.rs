@@ -1,12 +1,27 @@
-use crate::{client::Client, message::Message};
+use tokio::{io::WriteHalf, net::TcpStream, sync::oneshot};
+
+use crate::message::Message;
 
 #[derive(Debug)]
 pub enum Command {
-    Add { client: Client },
-    Connect { me: String, other: String },
-    Send { message: Message },
-    Remove { name: String },
-    GET { name: String },
+    Add {
+        name_pass: String,
+        writer: WriteHalf<TcpStream>,
+        sender: oneshot::Sender<(Option<String>, Option<WriteHalf<TcpStream>>)>,
+    },
+    Connect {
+        me: String,
+        other: String,
+    },
+    Send {
+        message: Message,
+    },
+    Remove {
+        name: String,
+    },
+    GET {
+        name: String,
+    },
 }
 
 impl Command {

@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 petgraph = "0.6.4"
+
+sqlx = { version = "0.7.3", features = [ "runtime-tokio-rustls", "mysql", "postgres", "macros" ] }
+password-auth = "1.0.0"

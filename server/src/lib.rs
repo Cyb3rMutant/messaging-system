@@ -6,16 +6,52 @@ mod message;
 
 mod commands;
 
+mod model;
+
 use crate::{client::Client, commands::Command, container::Container};
 
-use tokio::{io::AsyncBufReadExt, net::TcpStream, sync::mpsc};
+use tokio::{
+    io::{split, AsyncBufReadExt, AsyncWriteExt, BufReader},
+    net::TcpStream,
+    sync::{mpsc, oneshot},
+};
 
 pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     use Command::*;
-    let (client, mut reader) = Client::new(stream).await;
-    let name = client.name.clone();
+    // let (client, mut reader) = Client::new(stream).await;
+    // let name = client.name.clone();
 
-    tx.send(Add { client }).await.unwrap();
+    let (reader, mut writer) = split(stream);
+
+    let mut reader = BufReader::new(reader);
+    //////////////////////////
+    let name = loop {
+        let mut name_pass = String::new();
+        // Prompt the client for their name.
+        reader.read_line(&mut name_pass).await.unwrap();
+        let (sender, rx) = oneshot::channel();
+
+        tx.send(Add {
+            name_pass,
+            writer,
+            sender,
+        })
+        .await
+        .unwrap();
+        match rx.await.unwrap() {
+            (Some(name), None) => {
+                break name;
+            }
+            (None, Some(w)) => {
+                writer = w;
+            }
+            _ => {
+                panic!();
+            }
+        }
+    }
+    .to_owned();
+    //////////////////////////
 
     loop {
         println!("looping - {name}");
@@ -58,12 +94,34 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
 }
 
 pub async fn manager(mut rx: mpsc::Receiver<Command>) {
+    let pool = sqlx::mysql::MySqlPool::connect("mysql://yazeed@localhost:3306/rustdb")
+        .await
+        .unwrap();
+
     let mut clients = Container::new();
+
     use Command::*;
+
     while let Some(command) = rx.recv().await {
         match command {
-            Add { client } => {
-                clients.push(client);
+            Add {
+                name_pass,
+                mut writer,
+                sender,
+            } => {
+                let (name, password) = name_pass.trim().split_once(';').unwrap();
+                println!("{:?}{:?}\n", name, password);
+                if let Ok(_) = model::login(&name, &password, &pool).await {
+                    println!("in\n");
+                    let name = name.to_owned();
+                    clients.push(Client::new(name.clone(), writer).await);
+                    sender.send((Some(name), None)).unwrap();
+                } else {
+                    println!("wrong\n");
+                    let message = format!("ERR;PWD!\n");
+                    writer.write_all(message.as_bytes()).await.unwrap();
+                    sender.send((None, Some(writer))).unwrap();
+                }
             }
             Send { message } => {
                 let (name, message) = message.parse();

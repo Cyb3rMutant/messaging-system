@@ -1,5 +1,5 @@
 use tokio::{
-    io::{split, AsyncBufReadExt, AsyncWriteExt, BufReader, ReadHalf, WriteHalf},
+    io::{AsyncWriteExt, WriteHalf},
     net::TcpStream,
 };
 
@@ -11,28 +11,14 @@ pub struct Client {
 }
 
 impl<'a> Client {
-    pub async fn new(stream: TcpStream) -> (Client, BufReader<ReadHalf<TcpStream>>) {
-        let mut name = String::new();
-        let (reader, mut writer) = split(stream);
-
-        let mut reader = BufReader::new(reader);
-
-        // Prompt the client for their name.
-        reader.read_line(&mut name).await.unwrap();
-
-        let name = name.trim().to_string();
-
+    pub async fn new(name: String, mut writer: WriteHalf<TcpStream>) -> Client {
         let message = format!("LGN;{}!\n", name);
         writer.write_all(message.as_bytes()).await.unwrap();
-
-        (
-            Client {
-                name,
-                writer,
-                friends: vec![],
-            },
-            reader,
-        )
+        Client {
+            name,
+            writer,
+            friends: vec![],
+        }
     }
 
     pub async fn send(&mut self, message: &str) {

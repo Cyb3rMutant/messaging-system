@@ -11,17 +11,19 @@
   <body>
     <a href="login.html">Go to Login Page</a>
     <h1 id="header">Welcome from Tauri!</h1>
+
     <div id="no">
       <form id="loginForm">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required />
 
-        <!-- <label for="password">Password:</label> -->
-        <!-- <input type="password" id="password" name="password" required /> -->
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required />
 
         <button type="button" onclick="login()">Login</button>
       </form>
     </div>
+
     <div id="yes" style="display: none">
       <div id="container">
         <!-- Existing divs will be appended here -->

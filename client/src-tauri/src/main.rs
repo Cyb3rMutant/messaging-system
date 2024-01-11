@@ -19,6 +19,7 @@ async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
             "MSG" => app.emit_all("MSG", content.replace(";", ": ")),
             "USR" => app.emit_all("USR", content.split(";").collect::<Vec<&str>>()),
             "LGN" => app.emit_all("LGN", true),
+            "ERR" => app.emit_all("ERR", content),
             _ => app.emit_all("OTH", content),
         };
     }
@@ -44,10 +45,10 @@ fn getusers(sender: State<'_, Sender>) {
 }
 
 #[tauri::command]
-fn login(username: String, sender: State<'_, Sender>) {
+fn login(username: String, password: String, sender: State<'_, Sender>) {
     let mut writer = sender.0.lock().unwrap();
     writer
-        .write_all(format!("{}\n", username).as_bytes())
+        .write_all(format!("{};{}\n", username, password).as_bytes())
         .expect("Failed to send message to the server");
 }
 

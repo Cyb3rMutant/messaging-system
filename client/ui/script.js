@@ -65,13 +65,27 @@ listen("USR", (message) => {
 // login
 function login() {
   var username = document.getElementById("username").value;
+  var password = document.getElementById("password").value;
 
-  console.log("Username:", username);
+  console.log("username:", username, typeof username);
+  console.log("password:", password, typeof password);
 
-  invoke("login", { username: username });
+  invoke("login", { username: username, password: password });
 }
 
 listen("LGN", (message) => {
+  var logged = message.payload;
+
+  console.log(message);
+  if (logged) {
+    var div = document.getElementById("no");
+    div.style.display = "none";
+    var div = document.getElementById("yes");
+    div.style.display = "block";
+  }
+});
+
+listen("ERR", (message) => {
   var logged = message.payload;
 
   console.log(message);
