@@ -1,5 +1,22 @@
+let userName = "";
+
 const { listen } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.tauri;
+
+// testing
+function getChat() {
+  var user = document.querySelector('input[name="users"]:checked').value;
+  invoke("switch_chat", { user: user }).then(function(messages) {
+    console.log(1, messages, typeof messages);
+
+    document.getElementById("container").innerHTML = "";
+    for (let i = 0; i < messages.length; i++) {
+      const element = messages[i];
+
+      displayMessage(element.from, element.content);
+    }
+  });
+}
 
 // messages
 function sendMessage() {
@@ -11,17 +28,29 @@ function sendMessage() {
   // Clear the input
   messageInput.value = "";
 
-  console.log(messageText, user);
+  displayMessage(userName, messageText);
+
   invoke("send", { user: user, message: messageText });
 }
 
 listen("MSG", (message) => {
-  window.header.innerHTML = message.payload;
+  let from = message.payload.from;
+  let content = message.payload.content;
+  var activeChat = document.querySelector('input[name="users"]:checked').value;
 
-  console.log(message);
+  if (from == activeChat) {
+    displayMessage(from, content);
+  }
+});
+
+function displayMessage(from, content) {
+  console.log(from, content);
   var newDiv = document.createElement("div");
   newDiv.className = "dynamic-div";
-  newDiv.textContent = message.payload;
+  if (from == userName) {
+    newDiv.className += " from-me";
+  }
+  newDiv.textContent = content;
 
   // Append the new div to the container
   document.getElementById("container").appendChild(newDiv);
@@ -29,7 +58,7 @@ listen("MSG", (message) => {
   // Scroll to the bottom to keep the new div in view
   document.getElementById("container").scrollTop =
     document.getElementById("container").scrollHeight;
-});
+}
 
 // get users
 function getUsers() {
@@ -41,24 +70,27 @@ function getUsers() {
 listen("USR", (message) => {
   var arr = message.payload;
 
-  console.log(message, typeof message.payload);
-
-  var div = document.getElementById("radioDiv");
-  div.innerHTML = ""; // clear the div
+  var friendsList = document.getElementById("friends");
+  friendsList.innerHTML = ""; // clear the list
 
   for (var i = 0; i < arr.length; i++) {
+    var listItem = document.createElement("li");
+
     var radioButton = document.createElement("input");
     radioButton.type = "radio";
     radioButton.name = "users";
     radioButton.id = "radio" + i;
     radioButton.value = arr[i];
+    radioButton.addEventListener("change", getChat);
 
     var label = document.createElement("label");
     label.htmlFor = radioButton.id;
     label.appendChild(document.createTextNode(arr[i]));
 
-    div.appendChild(radioButton);
-    div.appendChild(label);
+    listItem.appendChild(radioButton);
+    listItem.appendChild(label);
+
+    friendsList.appendChild(listItem);
   }
 });
 
@@ -74,10 +106,10 @@ function login() {
 }
 
 listen("LGN", (message) => {
-  var logged = message.payload;
+  userName = message.payload;
 
   console.log(message);
-  if (logged) {
+  if (userName) {
     var div = document.getElementById("no");
     div.style.display = "none";
     var div = document.getElementById("yes");

@@ -1,3 +1,37 @@
+/* make sure to remove the yes thing and give it to body to fix the small margin left next to the friend list*/
+/* body { */
+/*   margin: 0; */
+/*   padding: 0; */
+/*   display: flex; */
+/*   height: 100vh; */
+/* } */
+#yes {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  height: 100vh;
+}
+
+/* chat container owns the friend list and chat. and chat owns container */
+#chat-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+#friend-list {
+  width: 20%;
+  background-color: #f4f4f4;
+  border-right: 1px solid #ccc;
+  overflow-y: auto;
+}
+
+#chat {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
 #container {
   max-height: 200px;
   overflow-y: auto;
@@ -9,4 +43,31 @@
   border: 1px solid #000;
   margin-bottom: 10px;
   padding: 10px;
+}
+
+.from-me {
+  text-align: right;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 70%;
+}
+
+#message {
+  width: 100%;
+  display: block;
+  padding: 10px;
+  margin: 10px;
+}
+
+#send-button {
+  width: 100%;
+  display: block;
+  padding: 10px;
+  margin: 10px;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
 }

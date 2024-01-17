@@ -1,40 +1,48 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <link rel="stylesheet" href="styles.css" />
-    <script src="script.js"></script>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <body>
-    <a href="login.html">Go to Login Page</a>
-    <h1 id="header">Welcome from Tauri!</h1>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="script.js"></script>
+</head>
 
-    <div id="no">
-      <form id="loginForm">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required />
+<body>
+  <div id="no">
+    <form id="loginForm">
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required />
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required />
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required />
 
-        <button type="button" onclick="login()">Login</button>
-      </form>
-    </div>
+      <button type="button" onclick="login()">Login</button>
+    </form>
+  </div>
 
-    <div id="yes" style="display: none">
-      <div id="container">
-        <!-- Existing divs will be appended here -->
+  <div id="yes" style="display: none">
+    <div id="chat-container">
+      <div id="friend-list">
+        <h2>Friends</h2>
+        <button onclick="getUsers()">get users</button>
+        <button onclick="getChat()">get chat</button>
+        <ul id="friends"></ul>
       </div>
-
-      <button onclick="getUsers()">get users</button>
-      <div id="radioDiv"></div>
-      <label for="message">Message:</label>
-      <input type="text" id="message" placeholder="Type your message here" />
-
-      <button onclick="sendMessage()">Send Message</button>
+      <div id="chat">
+        <div id="container">
+          <!-- Existing divs will be appended here -->
+        </div>
+        <div class="footer">
+          <input type="text" id="message" placeholder="Type a message..." />
+          <button id="send-button" onclick="sendMessage()">
+            Send Message
+          </button>
+        </div>
+      </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>
