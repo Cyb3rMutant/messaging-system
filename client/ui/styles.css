@@ -71,3 +71,7 @@
   color: white;
   cursor: pointer;
 }
+
+.notification::after {
+  content: "*";
+}

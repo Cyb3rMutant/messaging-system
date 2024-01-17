@@ -5,7 +5,9 @@ const { invoke } = window.__TAURI__.tauri;
 
 // testing
 function getChat() {
-  var user = document.querySelector('input[name="users"]:checked').value;
+  var button = document.querySelector('input[name="users"]:checked');
+  var user = button.value;
+  button.className = "";
   invoke("switch_chat", { user: user }).then(function(messages) {
     console.log(1, messages, typeof messages);
 
@@ -40,6 +42,8 @@ listen("MSG", (message) => {
 
   if (from == activeChat) {
     displayMessage(from, content);
+  } else {
+    document.getElementById(from).className += " notification";
   }
 });
 
@@ -79,7 +83,7 @@ listen("USR", (message) => {
     var radioButton = document.createElement("input");
     radioButton.type = "radio";
     radioButton.name = "users";
-    radioButton.id = "radio" + i;
+    radioButton.id = arr[i];
     radioButton.value = arr[i];
     radioButton.addEventListener("change", getChat);
 
