@@ -9,6 +9,10 @@ pub enum Command {
         writer: WriteHalf<TcpStream>,
         sender: oneshot::Sender<(Option<String>, Option<WriteHalf<TcpStream>>)>,
     },
+    Register {
+        name_pass: String,
+        sender: oneshot::Sender<bool>,
+    },
     Connect {
         me: String,
         other: String,

@@ -1,6 +1,6 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
-use server::{manager, process};
+use server::{manager::Manager, process};
 use tokio::{net::TcpListener, sync::mpsc, time::sleep};
 
 #[tokio::main]
@@ -10,8 +10,10 @@ async fn main() {
 
     let (tx, rx) = mpsc::channel(32);
 
+    let manager = Arc::new(Manager::new(rx).await);
+    let _c_manager = Arc::clone(&manager);
     tokio::spawn(async move {
-        manager(rx).await;
+        manager.run().await;
     });
 
     loop {

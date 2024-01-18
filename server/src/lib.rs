@@ -8,7 +8,9 @@ mod commands;
 
 mod model;
 
-use crate::{client::Client, commands::Command, container::Container};
+pub mod manager;
+
+use crate::commands::Command;
 
 use tokio::{
     io::{split, AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -26,28 +28,50 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     let mut reader = BufReader::new(reader);
     //////////////////////////
     let name = loop {
-        let mut name_pass = String::new();
+        let mut buf = String::new();
         // Prompt the client for their name.
-        reader.read_line(&mut name_pass).await.unwrap();
-        let (sender, rx) = oneshot::channel();
+        reader.read_line(&mut buf).await.unwrap();
 
-        tx.send(Add {
-            name_pass,
-            writer,
-            sender,
-        })
-        .await
-        .unwrap();
-        match rx.await.unwrap() {
-            (Some(name), None) => {
-                break name;
+        let (command, name_pass) = buf.split_once(';').unwrap();
+        match command {
+            "LGN" => {
+                let (sender, rx) = oneshot::channel();
+                tx.send(Add {
+                    name_pass: name_pass.to_owned(),
+                    writer,
+                    sender,
+                })
+                .await
+                .unwrap();
+                match rx.await.unwrap() {
+                    (Some(name), None) => {
+                        break name;
+                    }
+                    (None, Some(w)) => {
+                        writer = w;
+                    }
+                    _ => {
+                        panic!();
+                    }
+                }
             }
-            (None, Some(w)) => {
-                writer = w;
+            "REG" => {
+                let (sender, rx) = oneshot::channel();
+                tx.send(Register {
+                    name_pass: name_pass.to_owned(),
+                    sender,
+                })
+                .await
+                .unwrap();
+                match rx.await.unwrap() {
+                    true => writer.write_all("REG;Y".as_bytes()).await.unwrap(),
+                    false => writer.write_all("REG;N".as_bytes()).await.unwrap(),
+                }
             }
-            _ => {
-                panic!();
-            }
+            _ => writer
+                .write_all("ERR;YOU ARE NOT LOGGED IN".as_bytes())
+                .await
+                .unwrap(),
         }
     }
     .to_owned();
@@ -91,63 +115,4 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     // Remove the disconnected client from the list of clients.
     println!("{name} disconnected");
     tx.send(Remove { name }).await.unwrap();
-}
-
-pub async fn manager(mut rx: mpsc::Receiver<Command>) {
-    let pool = sqlx::mysql::MySqlPool::connect("mysql://yazeed@localhost:3306/rustdb")
-        .await
-        .unwrap();
-
-    let mut clients = Container::new();
-
-    use Command::*;
-
-    while let Some(command) = rx.recv().await {
-        match command {
-            Add {
-                name_pass,
-                mut writer,
-                sender,
-            } => {
-                let (name, password) = name_pass.trim().split_once(';').unwrap();
-                println!("{:?}{:?}\n", name, password);
-                if let Ok(_) = model::login(&name, &password, &pool).await {
-                    println!("in\n");
-                    let name = name.to_owned();
-                    clients.push(Client::new(name.clone(), writer).await);
-                    sender.send((Some(name), None)).unwrap();
-                } else {
-                    println!("wrong\n");
-                    let message = format!("ERR;PWD!\n");
-                    writer.write_all(message.as_bytes()).await.unwrap();
-                    sender.send((None, Some(writer))).unwrap();
-                }
-            }
-            Send { message } => {
-                let (name, message) = message.parse();
-                println!("{name:?} {message:?}");
-                let receiver = clients.get(&name);
-                receiver.send(&message).await;
-            }
-            Connect { me, other } => {
-                {
-                    let me = clients.get(&me);
-                    me.add_friend(&other);
-                }
-                {
-                    let other = clients.get(&other);
-                    other.add_friend(&me);
-                }
-            }
-            GET { name } => {
-                let names = clients.get_all();
-                let names = format!("USR{names}\n");
-                clients.get(&name).send(&names).await;
-            }
-            Remove { name } => {
-                clients.remove(&name);
-            }
-        };
-        clients.print();
-    }
 }
