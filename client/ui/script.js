@@ -8,7 +8,7 @@ function getChat() {
   var button = document.querySelector('input[name="users"]:checked');
   var user = button.value;
   button.className = "";
-  invoke("switch_chat", { user: user }).then(function (messages) {
+  invoke("switch_chat", { user: user }).then(function(messages) {
     console.log(1, messages, typeof messages);
 
     document.getElementById("container").innerHTML = "";
@@ -100,8 +100,11 @@ listen("USR", (message) => {
 
 // register
 function register() {
+  console.log("in registeration");
   var username = document.getElementById("username").value;
   var password = document.getElementById("password").value;
+
+  console.log(username, password);
 
   invoke("register", { username: username, password: password });
 }
@@ -115,6 +118,7 @@ listen("REG", (message) => {
   }
 });
 
+// login
 function login() {
   var username = document.getElementById("username").value;
   var password = document.getElementById("password").value;
@@ -122,7 +126,6 @@ function login() {
   invoke("login", { username: username, password: password });
 }
 
-// login
 listen("LGN", (message) => {
   userName = message.payload;
 
@@ -136,14 +139,14 @@ listen("LGN", (message) => {
 });
 
 listen("ERR", (message) => {
-  var logged = message.payload;
+  var err = message.payload;
 
   console.log(message);
-  if (logged) {
-    var div = document.getElementById("no");
-    div.style.display = "none";
-    var div = document.getElementById("yes");
-    div.style.display = "block";
+  var elem = document.getElementById("register-message");
+  if (err == "PWD") {
+    elem.innerText = "wrong password";
+  } else {
+    elem.innerText = "user does not exist";
   }
 });
 

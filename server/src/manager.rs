@@ -36,6 +36,7 @@ impl Manager {
                     mut writer,
                     sender,
                 } => {
+                    println!("start manager");
                     let (name, password) = name_pass.trim().split_once(';').unwrap();
                     println!("{:?}{:?}\n", name, password);
                     if let Ok(_) = model::login(&name, &password, &self.pool).await {

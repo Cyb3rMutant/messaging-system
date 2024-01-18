@@ -36,16 +36,19 @@ pub fn getusers(sender: State<'_, Sender>) {
 
 #[tauri::command]
 pub fn register(username: String, password: String, sender: State<'_, Sender>) {
+    println!("in register");
+    println!("{username}, {password}");
     let mut writer = sender.0.lock().unwrap();
     writer
-        .write_all(format!("{};{}\n", username, password).as_bytes())
+        .write_all(format!("REG;{};{}\n", username, password).as_bytes())
         .expect("Failed to send message to the server");
+    println!("done");
 }
 
 #[tauri::command]
 pub fn login(username: String, password: String, sender: State<'_, Sender>) {
     let mut writer = sender.0.lock().unwrap();
     writer
-        .write_all(format!("{};{}\n", username, password).as_bytes())
+        .write_all(format!("LGN;{};{}\n", username, password).as_bytes())
         .expect("Failed to send message to the server");
 }

@@ -31,7 +31,13 @@ fn main() {
         })
         .manage(Sender(Arc::new(Mutex::new(writer))))
         .manage(GlobalChats(Arc::new(RwLock::new(chats))))
-        .invoke_handler(tauri::generate_handler![send, getusers, login, switch_chat])
+        .invoke_handler(tauri::generate_handler![
+            send,
+            getusers,
+            login,
+            register,
+            switch_chat
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

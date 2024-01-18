@@ -20,6 +20,7 @@ use tokio::{
 
 pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     use Command::*;
+    println!("1 start");
     // let (client, mut reader) = Client::new(stream).await;
     // let name = client.name.clone();
 
@@ -30,11 +31,15 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     let name = loop {
         let mut buf = String::new();
         // Prompt the client for their name.
+        println!("2 loop - {:?}", buf);
         reader.read_line(&mut buf).await.unwrap();
+        println!("2 loop - {:?}", buf);
 
         let (command, name_pass) = buf.split_once(';').unwrap();
+        println!("{:?}{name_pass}", command);
         match command {
             "LGN" => {
+                println!("3 login");
                 let (sender, rx) = oneshot::channel();
                 tx.send(Add {
                     name_pass: name_pass.to_owned(),
@@ -43,11 +48,14 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 })
                 .await
                 .unwrap();
+                println!("4 sent to manager");
                 match rx.await.unwrap() {
                     (Some(name), None) => {
+                        println!("5 logged in");
                         break name;
                     }
                     (None, Some(w)) => {
+                        println!("6 wrong");
                         writer = w;
                     }
                     _ => {
@@ -56,6 +64,7 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 }
             }
             "REG" => {
+                println!("in reg");
                 let (sender, rx) = oneshot::channel();
                 tx.send(Register {
                     name_pass: name_pass.to_owned(),
@@ -63,19 +72,23 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 })
                 .await
                 .unwrap();
+                println!("sent");
                 match rx.await.unwrap() {
                     true => writer.write_all("REG;Y".as_bytes()).await.unwrap(),
                     false => writer.write_all("REG;N".as_bytes()).await.unwrap(),
                 }
+                println!("done");
             }
             _ => writer
                 .write_all("ERR;YOU ARE NOT LOGGED IN".as_bytes())
                 .await
                 .unwrap(),
         }
+        println!("7 end loop");
     }
     .to_owned();
     //////////////////////////
+    println!("8 done loop 1");
 
     loop {
         println!("looping - {name}");
