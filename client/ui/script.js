@@ -8,7 +8,7 @@ function getChat() {
   var button = document.querySelector('input[name="users"]:checked');
   var user = button.value;
   button.className = "";
-  invoke("switch_chat", { user: user }).then(function(messages) {
+  invoke("switch_chat", { user: user }).then(function (messages) {
     console.log(1, messages, typeof messages);
 
     document.getElementById("container").innerHTML = "";
@@ -98,17 +98,31 @@ listen("USR", (message) => {
   }
 });
 
-// login
+// register
+function register() {
+  var username = document.getElementById("username").value;
+  var password = document.getElementById("password").value;
+
+  invoke("register", { username: username, password: password });
+}
+
+listen("REG", (message) => {
+  var elem = document.getElementById("register-message");
+  if (message.payload == "Y") {
+    elem.innerText = "you are registered";
+  } else {
+    elem.innerText = "user already exists";
+  }
+});
+
 function login() {
   var username = document.getElementById("username").value;
   var password = document.getElementById("password").value;
 
-  console.log("username:", username, typeof username);
-  console.log("password:", password, typeof password);
-
   invoke("login", { username: username, password: password });
 }
 
+// login
 listen("LGN", (message) => {
   userName = message.payload;
 

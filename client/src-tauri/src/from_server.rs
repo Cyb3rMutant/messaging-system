@@ -22,6 +22,7 @@ pub async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
             "MSG" => receive(content, &app),
             "USR" => users(content, &app),
             "LGN" => logged_in(content, &app),
+            "REG" => app.emit_all("REG", content).unwrap(),
             "ERR" => app.emit_all("ERR", content).unwrap(),
             _ => app.emit_all("OTH", content).unwrap(),
         };
