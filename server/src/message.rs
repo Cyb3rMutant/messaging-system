@@ -18,4 +18,12 @@ impl Message {
             format!("MSG;{};{}", self.sender, self.content),
         )
     }
+
+    pub fn get_users(&self) -> (&str, &str) {
+        (&self.sender, &self.receiver)
+    }
+
+    pub fn get_content(&self) -> &str {
+        &self.content
+    }
 }

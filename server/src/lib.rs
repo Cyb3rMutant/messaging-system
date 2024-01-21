@@ -50,16 +50,13 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 .unwrap();
                 println!("4 sent to manager");
                 match rx.await.unwrap() {
-                    (Some(name), None) => {
+                    Ok(name) => {
                         println!("5 logged in");
                         break name;
                     }
-                    (None, Some(w)) => {
+                    Err(w) => {
                         println!("6 wrong");
                         writer = w;
-                    }
-                    _ => {
-                        panic!();
                     }
                 }
             }

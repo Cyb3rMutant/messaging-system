@@ -10,7 +10,7 @@ pub struct Client {
     pub friends: Vec<String>,
 }
 
-impl<'a> Client {
+impl Client {
     pub async fn new(name: String, mut writer: WriteHalf<TcpStream>) -> Client {
         let message = format!("LGN;{}\n", name);
         writer.write_all(message.as_bytes()).await.unwrap();
@@ -22,7 +22,9 @@ impl<'a> Client {
     }
 
     pub async fn send(&mut self, message: &str) {
+        println!("sending {:?}", message);
         self.writer.write_all(message.as_bytes()).await.unwrap();
+        println!("done 1");
     }
 
     pub fn add_friend(&mut self, name: &str) {

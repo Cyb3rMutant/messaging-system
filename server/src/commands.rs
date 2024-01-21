@@ -7,7 +7,7 @@ pub enum Command {
     Add {
         name_pass: String,
         writer: WriteHalf<TcpStream>,
-        sender: oneshot::Sender<(Option<String>, Option<WriteHalf<TcpStream>>)>,
+        sender: oneshot::Sender<Result<String, WriteHalf<TcpStream>>>,
     },
     Register {
         name_pass: String,

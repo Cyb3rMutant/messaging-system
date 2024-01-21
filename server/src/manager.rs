@@ -15,11 +15,11 @@ pub struct Manager {
 
 impl Manager {
     pub async fn new(rx: mpsc::Receiver<Command>) -> Manager {
-        let pool = sqlx::mysql::MySqlPool::connect("mysql://yazeed@localhost:3306/rustdb")
+        let pool = sqlx::mysql::MySqlPool::connect("mysql://yazeed@localhost:3306/messaging")
             .await
             .unwrap();
 
-        let clients = Container::new();
+        let clients = Container::new(model::load_users(&pool).await);
         Manager {
             rx: Mutex::new(rx),
             clients: Mutex::new(clients),
@@ -44,12 +44,12 @@ impl Manager {
                         let name = name.to_owned();
                         let mut clients = self.clients.lock().await;
                         clients.push(Client::new(name.clone(), writer).await);
-                        sender.send((Some(name), None)).unwrap();
+                        sender.send(Ok(name)).unwrap();
                     } else {
                         println!("wrong\n");
                         let message = format!("ERR;PWD!\n");
                         writer.write_all(message.as_bytes()).await.unwrap();
-                        sender.send((None, Some(writer))).unwrap();
+                        sender.send(Err(writer)).unwrap();
                     }
                 }
                 Register { name_pass, sender } => {
@@ -62,28 +62,20 @@ impl Manager {
                     };
                 }
                 Send { message } => {
+                    model::new_message(&message, &self.pool).await.unwrap();
                     let (name, message) = message.parse();
                     println!("{name:?} {message:?}");
                     let mut clients = self.clients.lock().await;
-                    let receiver = clients.get(&name);
-                    receiver.send(&message).await;
+                    clients.send(&name, &message).await;
                 }
                 Connect { me, other } => {
                     let mut clients = self.clients.lock().await;
-                    {
-                        let me = clients.get(&me);
-                        me.add_friend(&other);
-                    }
-                    {
-                        let other = clients.get(&other);
-                        other.add_friend(&me);
-                    }
+                    clients.add_friends(&me, &other);
                 }
                 GET { name } => {
                     let mut clients = self.clients.lock().await;
-                    let names = clients.get_all();
-                    let names = format!("USR{names}\n");
-                    clients.get(&name).send(&names).await;
+                    clients.send_users(&name).await;
+                    println!("done");
                 }
                 Remove { name } => {
                     let mut clients = self.clients.lock().await;
