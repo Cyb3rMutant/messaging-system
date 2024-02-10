@@ -9,7 +9,7 @@ function getChat() {
   var user = button.value;
   button.className = "";
   invoke("switch_chat", { user: user }).then(function(messages) {
-    console.log(1, messages, typeof messages);
+    console.log(messages, typeof messages);
 
     document.getElementById("container").innerHTML = "";
     for (let i = 0; i < messages.length; i++) {
@@ -48,7 +48,7 @@ listen("MSG", (message) => {
 });
 
 function displayMessage(from, content) {
-  console.log(from, content);
+  console.log("---", from, content);
   var newDiv = document.createElement("div");
   newDiv.className = "dynamic-div";
   if (from == userName) {
@@ -66,8 +66,6 @@ function displayMessage(from, content) {
 
 // get users
 function getUsers() {
-  console.log("getting users");
-
   invoke("getusers");
 }
 
@@ -100,11 +98,8 @@ listen("USR", (message) => {
 
 // register
 function register() {
-  console.log("in registeration");
   var username = document.getElementById("username").value;
   var password = document.getElementById("password").value;
-
-  console.log(username, password);
 
   invoke("register", { username: username, password: password });
 }
@@ -128,9 +123,8 @@ function login() {
 
 listen("LGN", (message) => {
   userName = message.payload;
-
-  console.log(message);
   if (userName) {
+    document.getElementById("your-username").innerText = userName;
     var div = document.getElementById("no");
     div.style.display = "none";
     var div = document.getElementById("yes");
@@ -141,7 +135,6 @@ listen("LGN", (message) => {
 listen("ERR", (message) => {
   var err = message.payload;
 
-  console.log(message);
   var elem = document.getElementById("register-message");
   if (err == "PWD") {
     elem.innerText = "wrong password";

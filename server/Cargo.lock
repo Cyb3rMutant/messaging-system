@@ -1057,6 +1057,8 @@ version = "0.1.0"
 dependencies = [
  "password-auth",
  "petgraph",
+ "serde",
+ "serde_json",
  "sqlx",
  "tokio",
 ]

@@ -16,7 +16,6 @@ pub async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
         if reader.read_line(&mut buf).unwrap() == 0 {
             break;
         }
-        println!("{:?}", buf);
         let (command, content) = buf.trim().split_once(';').unwrap();
         let _ = match command {
             "MSG" => receive(content, &app),
@@ -54,9 +53,11 @@ fn users<'a>(content: &'a str, app: &AppHandle) {
 }
 
 fn logged_in(content: &str, app: &AppHandle) {
+    let (name, messages) = content.split_once(';').unwrap();
+    println!("{}\t\t{}", name, messages);
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
-    chats.set_name(content.to_owned());
+    chats.set_name(name.to_owned());
 
-    app.emit_all("LGN", content).unwrap();
+    app.emit_all("LGN", name).unwrap();
 }

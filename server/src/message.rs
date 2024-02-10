@@ -1,8 +1,10 @@
-#[derive(Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
-    sender: String,
-    receiver: String,
-    content: String,
+    pub sender: String,
+    pub receiver: String,
+    pub content: String,
 }
 impl Message {
     pub fn new(sender: String, receiver: String, content: String) -> Self {

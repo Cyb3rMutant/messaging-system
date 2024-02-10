@@ -1,5 +1,5 @@
 use password_auth::{generate_hash, verify_password};
-use sqlx::query;
+use sqlx::{query, query_as};
 
 use crate::message::Message;
 
@@ -11,6 +11,30 @@ pub async fn load_users(conn: &sqlx::MySqlPool) -> Vec<String> {
         .into_iter()
         .map(|r| r.username)
         .collect()
+}
+
+pub async fn load_messages(name: &str, conn: &sqlx::MySqlPool) -> Vec<Message> {
+    query_as!(
+        Message,
+        r#"
+        SELECT
+            m.sender_username AS sender,
+            CASE
+                WHEN m.sender_username = c.username_1 THEN c.username_2
+                ELSE c.username_1
+            END AS receiver,
+            m.content
+        FROM
+            messages m
+            JOIN chats c ON m.chat_id = c.chat_id
+        WHERE
+            m.sender_username = ?;
+        "#,
+        name
+    )
+    .fetch_all(conn)
+    .await
+    .unwrap()
 }
 
 pub async fn login(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Result<(), String> {
@@ -55,8 +79,8 @@ pub async fn register(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Res
         FROM users 
         WHERE username <> ?
         "#,
-        &name,
-        &name
+        name,
+        name
     )
     .execute(conn)
     .await
@@ -88,7 +112,7 @@ pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) -> Result<()
         "INSERT INTO messages (content, sender_username, chat_id) VALUES (?, ?, ?)",
         message.get_content(),
         sender,
-        &chat_id
+        chat_id
     )
     .execute(conn)
     .await

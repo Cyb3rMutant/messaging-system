@@ -1,4 +1,6 @@
-use crate::client::Client;
+use tokio::{io::WriteHalf, net::TcpStream};
+
+use crate::{client::Client, message::Message};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -13,10 +15,30 @@ impl Container {
         }
     }
 
-    pub fn push(&mut self, client: Client) {
+    fn push(&mut self, client: Client) {
         let c = self.clients.get_mut(&client.name).unwrap();
         *c = Some(client);
     }
+
+    pub async fn login(
+        &mut self,
+        name: &str,
+        writer: WriteHalf<TcpStream>,
+        messages: Vec<Message>,
+    ) {
+        // ) -> Result<(), WriteHalf<TcpStream>> {
+        // add the functionality to not login if the user has already logged in
+        // if self.clients.contains_key(name) {
+        //     return Err(writer);
+        // }
+        let client = Client::new(name.to_owned(), writer).await;
+        let messages = serde_json::to_string(&messages).unwrap();
+        let message = format!("LGN;{};{}\n", name, messages);
+        self.push(client);
+        self.send(name, &message).await;
+        // Ok(())
+    }
+
     pub fn remove(&mut self, name: &str) {
         *self.clients.get_mut(name).unwrap() = None;
     }
@@ -57,11 +79,8 @@ impl Container {
 
     pub async fn send(&mut self, name: &str, message: &str) {
         let x = self.clients.get_mut(name).unwrap().as_mut();
-        println!("{x:?}");
         if let Some(c) = x {
-            println!("sending {:?}", message);
             c.send(message).await;
-            println!("done 2");
         }
     }
 }

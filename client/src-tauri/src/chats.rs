@@ -1,11 +1,41 @@
 use std::collections::{HashMap, VecDeque};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct Message {
     pub from: String,
     pub content: String,
+}
+
+impl<'de> Deserialize<'de> for Message {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value: Value = Deserialize::deserialize(deserializer)?;
+
+        // Ensure the input is a JSON object
+        let obj = match value {
+            Value::Object(obj) => obj,
+            _ => return Err(serde::de::Error::custom("Expected a JSON object")),
+        };
+
+        // Extract values from the JSON object
+        let sender = obj.get("sender").and_then(|v| v.as_str());
+        let content = obj.get("content").and_then(|v| v.as_str());
+
+        // Check if required fields are present
+        let sender = sender.ok_or_else(|| serde::de::Error::missing_field("sender"))?;
+        let content = content.ok_or_else(|| serde::de::Error::missing_field("content"))?;
+
+        // Initialize the Message struct
+        Ok(Message {
+            from: sender.to_string(),
+            content: content.to_string(),
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -55,10 +85,20 @@ impl Chats {
     }
 
     pub fn get_chat(&self, user: &str) -> &VecDeque<Message> {
+        println!("{:?}", self.chats.get(user).unwrap());
         self.chats.get(user).unwrap()
     }
 
     pub fn is_me(&self, user: &str) -> bool {
         self.me == user
     }
+
+    // pub fn load(&self, messages: &str) {
+    //     let messages: Vec<Message> = serde_json::from_str(messages).unwrap();
+    //     for m in messages.into_iter() {
+    //         if self.is_me(m.from) {
+    //
+    //         }
+    //     }
+    // }
 }

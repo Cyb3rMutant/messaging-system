@@ -33,7 +33,7 @@
 }
 
 #container {
-  max-height: 200px;
+  max-height: 500px;
   overflow-y: auto;
   border: 1px solid #ccc;
   padding: 10px;

@@ -41,18 +41,22 @@ impl Manager {
                     println!("{:?}{:?}\n", name, password);
                     if let Ok(_) = model::login(&name, &password, &self.pool).await {
                         println!("in\n");
-                        let name = name.to_owned();
                         let mut clients = self.clients.lock().await;
-                        clients.push(Client::new(name.clone(), writer).await);
-                        sender.send(Ok(name)).unwrap();
+                        let messages = model::load_messages(name, &self.pool).await;
+                        clients.login(name, writer, messages).await;
+                        sender.send(Ok(name.to_owned())).unwrap();
                     } else {
                         println!("wrong\n");
-                        let message = format!("ERR;PWD!\n");
+                        let message = format!("ERR;PWD\n");
                         writer.write_all(message.as_bytes()).await.unwrap();
                         sender.send(Err(writer)).unwrap();
                     }
                 }
                 Register { name_pass, sender } => {
+                    // might want to add the registered user to the container, as its only done in
+                    // the database
+                    // that way you could even do the authentication lacally rather than having to
+                    // check db
                     let (name, password) = name_pass.trim().split_once(';').unwrap();
                     println!("{:?}{:?}\n", name, password);
                     if let Ok(_) = model::register(&name, &password, &self.pool).await {

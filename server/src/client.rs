@@ -12,8 +12,6 @@ pub struct Client {
 
 impl Client {
     pub async fn new(name: String, mut writer: WriteHalf<TcpStream>) -> Client {
-        let message = format!("LGN;{}\n", name);
-        writer.write_all(message.as_bytes()).await.unwrap();
         Client {
             name,
             writer,
