@@ -6,26 +6,35 @@ use tokio::{
 #[derive(Debug)]
 pub struct Client {
     pub name: String,
-    writer: WriteHalf<TcpStream>,
-    pub friends: Vec<String>,
+    writer: Option<WriteHalf<TcpStream>>,
 }
 
 impl Client {
-    pub async fn new(name: String, mut writer: WriteHalf<TcpStream>) -> Client {
-        Client {
-            name,
-            writer,
-            friends: vec![],
+    pub fn new(name: String) -> Client {
+        Client { name, writer: None }
+    }
+    pub fn login(&mut self, writer: WriteHalf<TcpStream>) -> Result<(), WriteHalf<TcpStream>> {
+        if self.writer.is_some() {
+            Err(writer)
+        } else {
+            self.writer = Some(writer);
+            Ok(())
         }
+    }
+
+    pub fn loguot(&mut self) {
+        self.writer = None;
     }
 
     pub async fn send(&mut self, message: &str) {
         println!("sending {:?}", message);
-        self.writer.write_all(message.as_bytes()).await.unwrap();
+        if let Some(w) = self.writer.as_mut() {
+            w.write_all(message.as_bytes()).await.unwrap();
+        }
         println!("done 1");
     }
 
-    pub fn add_friend(&mut self, name: &str) {
-        self.friends.push(name.to_owned());
-    }
+    // pub fn add_friend(&mut self, name: &str) {
+    //     self.friends.push(name.to_owned());
+    // }
 }

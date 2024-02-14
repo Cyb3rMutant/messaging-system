@@ -3,13 +3,13 @@ use sqlx::{query, query_as};
 
 use crate::message::Message;
 
-pub async fn load_users(conn: &sqlx::MySqlPool) -> Vec<String> {
-    query!("SELECT username FROM users;")
+pub async fn load_users(conn: &sqlx::MySqlPool) -> Vec<(String, String, i32)> {
+    query!("SELECT * FROM chats;")
         .fetch_all(conn)
         .await
         .unwrap()
         .into_iter()
-        .map(|r| r.username)
+        .map(|r| (r.username_1, r.username_2, r.chat_id))
         .collect()
 }
 
