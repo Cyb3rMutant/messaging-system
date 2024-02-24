@@ -21,16 +21,13 @@ use tokio::{
 pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     use Command::*;
     println!("1 start");
-    // let (client, mut reader) = Client::new(stream).await;
-    // let name = client.name.clone();
 
     let (reader, mut writer) = split(stream);
 
     let mut reader = BufReader::new(reader);
     //////////////////////////
-    let name = loop {
+    let id = loop {
         let mut buf = String::new();
-        // Prompt the client for their name.
         println!("2 loop - {:?}", buf);
         reader.read_line(&mut buf).await.unwrap();
         println!("2 loop - {:?}", buf);
@@ -50,9 +47,9 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 .unwrap();
                 println!("4 sent to manager");
                 match rx.await.unwrap() {
-                    Ok(name) => {
+                    Ok(id) => {
                         println!("5 logged in");
-                        break name;
+                        break id;
                     }
                     Err(w) => {
                         println!("6 wrong");
@@ -82,13 +79,12 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 .unwrap(),
         }
         println!("7 end loop");
-    }
-    .to_owned();
+    };
     //////////////////////////
     println!("8 done loop 1");
 
     loop {
-        println!("looping - {name}");
+        println!("looping - {id}");
         let mut buf = String::new();
         let message = match reader.read_line(&mut buf).await {
             Ok(0) => {
@@ -100,9 +96,9 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                         break;
                     };
                 match command {
-                    "SND" => Command::send(content, name.clone()),
-                    "CNT" => Command::connect(content, name.clone()),
-                    "GET" => Ok(Command::GET { name: name.clone() }),
+                    "SND" => Command::send(content, id),
+                    // "CNT" => Command::connect(content, id),
+                    "GET" => Ok(Command::GET { id }),
                     _ => break,
                 }
             }
@@ -123,6 +119,6 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
     }
 
     // Remove the disconnected client from the list of clients.
-    println!("{name} disconnected");
-    tx.send(Remove { name }).await.unwrap();
+    println!("{id} disconnected");
+    tx.send(Remove { id }).await.unwrap();
 }

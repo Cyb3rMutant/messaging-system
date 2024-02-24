@@ -2,27 +2,17 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
-    pub sender: String,
-    pub receiver: String,
+    pub chat_id: i32,
+    pub sender_id: i32,
     pub content: String,
 }
 impl Message {
-    pub fn new(sender: String, receiver: String, content: String) -> Self {
+    pub fn new(chat_id: i32, sender_id: i32, content: String) -> Self {
         Message {
-            sender,
-            receiver,
+            chat_id,
+            sender_id,
             content,
         }
-    }
-    pub fn parse(self) -> (String, String) {
-        (
-            self.receiver,
-            format!("MSG;{};{}", self.sender, self.content),
-        )
-    }
-
-    pub fn get_users(&self) -> (&str, &str) {
-        (&self.sender, &self.receiver)
     }
 
     pub fn get_content(&self) -> &str {

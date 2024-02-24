@@ -7,7 +7,7 @@ pub enum Command {
     Add {
         name_pass: String,
         writer: WriteHalf<TcpStream>,
-        sender: oneshot::Sender<Result<String, WriteHalf<TcpStream>>>,
+        sender: oneshot::Sender<Result<i32, WriteHalf<TcpStream>>>,
     },
     Register {
         name_pass: String,
@@ -21,31 +21,29 @@ pub enum Command {
         message: Message,
     },
     Remove {
-        name: String,
+        id: i32,
     },
     GET {
-        name: String,
+        id: i32,
     },
 }
 
 impl Command {
-    pub fn send(content: &str, name: String) -> Result<Command, String> {
-        let x = content.split_once(';');
-
-        match x {
-            Some((n, m)) if !n.is_empty() => Ok(Command::Send {
-                message: Message::new(name, n.to_owned(), m.to_owned()),
+    pub fn send(content: &str, id: i32) -> Result<Command, String> {
+        match content.split_once(';') {
+            Some((chat_id, message)) => Ok(Command::Send {
+                message: Message::new(chat_id.parse().unwrap(), id, message.to_owned()),
             }),
             _ => Err(String::new()),
         }
     }
 
-    pub fn connect(other: &str, name: String) -> Result<Command, String> {
-        let other = other.trim_end_matches("\r\n").to_owned();
-
-        Ok(Command::Connect {
-            me: name,
-            other: other.to_owned(),
-        })
-    }
+    // pub fn connect(other: &str, name: String) -> Result<Command, String> {
+    //     let other = other.trim_end_matches("\r\n").to_owned();
+    //
+    //     Ok(Command::Connect {
+    //         me: name,
+    //         other: other.to_owned(),
+    //     })
+    // }
 }

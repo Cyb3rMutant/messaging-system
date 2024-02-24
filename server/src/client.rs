@@ -5,13 +5,18 @@ use tokio::{
 
 #[derive(Debug)]
 pub struct Client {
+    pub id: i32,
     pub name: String,
     writer: Option<WriteHalf<TcpStream>>,
 }
 
 impl Client {
-    pub fn new(name: String) -> Client {
-        Client { name, writer: None }
+    pub fn new(id: i32, name: String) -> Client {
+        Client {
+            id,
+            name,
+            writer: None,
+        }
     }
     pub fn login(&mut self, writer: WriteHalf<TcpStream>) -> Result<(), WriteHalf<TcpStream>> {
         if self.writer.is_some() {
@@ -33,8 +38,4 @@ impl Client {
         }
         println!("done 1");
     }
-
-    // pub fn add_friend(&mut self, name: &str) {
-    //     self.friends.push(name.to_owned());
-    // }
 }

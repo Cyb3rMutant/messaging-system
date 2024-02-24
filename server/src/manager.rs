@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 use sqlx::{MySql, Pool};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
-use crate::{client::Client, commands::Command, container::Container, model};
+use crate::{commands::Command, container::Container, model};
 
 #[derive(Debug)]
 pub struct Manager {
@@ -39,12 +39,12 @@ impl Manager {
                     println!("start manager");
                     let (name, password) = name_pass.trim().split_once(';').unwrap();
                     println!("{:?}{:?}\n", name, password);
-                    if let Ok(_) = model::login(&name, &password, &self.pool).await {
+                    if let Ok(id) = model::login(&name, &password, &self.pool).await {
                         println!("in\n");
                         let mut clients = self.clients.lock().await;
-                        let messages = model::load_messages(name, &self.pool).await;
-                        clients.login(name, writer, messages).await;
-                        sender.send(Ok(name.to_owned())).unwrap();
+                        let messages = model::load_messages(id, &self.pool).await;
+                        clients.login(id, writer, messages).await;
+                        sender.send(Ok(id)).unwrap();
                     } else {
                         println!("wrong\n");
                         let message = format!("ERR;PWD\n");
@@ -67,23 +67,24 @@ impl Manager {
                 }
                 Send { message } => {
                     model::new_message(&message, &self.pool).await.unwrap();
-                    let (name, message) = message.parse();
-                    println!("{name:?} {message:?}");
+                    let m = format!("MSG;{};{}", message.chat_id, message.content);
+                    println!("{message:?}");
                     let mut clients = self.clients.lock().await;
-                    clients.send(&name, &message).await;
+                    let receiver = clients.get_other(message.chat_id, message.sender_id);
+                    clients.send(receiver, &m).await;
                 }
                 Connect { me, other } => {
                     let mut clients = self.clients.lock().await;
                     clients.add_friends(&me, &other);
                 }
-                GET { name } => {
+                GET { id } => {
                     let mut clients = self.clients.lock().await;
-                    clients.send_users(&name).await;
+                    clients.send_users(id).await;
                     println!("done");
                 }
-                Remove { name } => {
+                Remove { id } => {
                     let mut clients = self.clients.lock().await;
-                    clients.remove(&name);
+                    clients.remove(id);
                 }
             };
         }
