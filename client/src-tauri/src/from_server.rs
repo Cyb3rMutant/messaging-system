@@ -29,35 +29,44 @@ pub async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
 }
 
 fn receive(content: &str, app: &AppHandle) {
-    let (name, message) = content.split_once(';').unwrap();
+    let (id, message) = content.split_once(';').unwrap();
+    let id = id.parse::<i32>().unwrap();
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
-    if chats.is_me(name) {
+    if chats.is_me(id) {
         return;
     }
-    let message = chats.received_message(name, message.to_owned());
+    let message = chats.received_message(id, message.to_owned());
 
-    app.emit_all("MSG", message).unwrap();
+    app.emit_all("MSG", (id, message)).unwrap();
 }
 
 fn users<'a>(content: &'a str, app: &AppHandle) {
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
     let users = content.split(";").collect::<Vec<&str>>();
-
-    for user in users.iter() {
-        chats.add_chat(user.to_string());
+    let mut iter = users.iter();
+    while let Some(chat_id) = iter.next() {
+        if let Some(name) = iter.next() {
+            println!("{:?} {:?}", chat_id, name);
+            chats.add_chat(chat_id.parse().unwrap());
+        }
     }
+
+    // for user in users.iter() {
+    //     chats.add_chat(user.to_string());
+    // }
 
     app.emit_all("USR", users).unwrap();
 }
 
 fn logged_in(content: &str, app: &AppHandle) {
-    let (name, messages) = content.split_once(';').unwrap();
-    println!("{}\t\t{}", name, messages);
+    let (id, messages) = content.split_once(';').unwrap();
+    let id = id.parse::<i32>().unwrap();
+    println!("{}\t\t{}", id, messages);
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
-    chats.set_name(name.to_owned());
+    chats.set_id(id);
 
-    app.emit_all("LGN", name).unwrap();
+    app.emit_all("LGN", id).unwrap();
 }

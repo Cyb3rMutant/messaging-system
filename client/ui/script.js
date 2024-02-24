@@ -1,4 +1,4 @@
-let userName = "";
+let userId = 0;
 
 const { listen } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.tauri;
@@ -6,16 +6,16 @@ const { invoke } = window.__TAURI__.tauri;
 // testing
 function getChat() {
   var button = document.querySelector('input[name="users"]:checked');
-  var user = button.value;
+  var user = parseInt(button.value);
   button.className = "";
-  invoke("switch_chat", { user: user }).then(function(messages) {
+  invoke("switch_chat", { user: user }).then(function (messages) {
     console.log(messages, typeof messages);
 
     document.getElementById("container").innerHTML = "";
     for (let i = 0; i < messages.length; i++) {
       const element = messages[i];
 
-      displayMessage(element.from, element.content);
+      displayMessage(element.from_me, element.content);
     }
   });
 }
@@ -25,33 +25,39 @@ function sendMessage() {
   // Get the value from the input
   var messageInput = document.getElementById("message");
   var messageText = messageInput.value;
-  var user = document.querySelector('input[name="users"]:checked').value;
+  var user = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
 
   // Clear the input
   messageInput.value = "";
 
-  displayMessage(userName, messageText);
+  displayMessage(true, messageText);
 
   invoke("send", { user: user, message: messageText });
 }
 
 listen("MSG", (message) => {
-  let from = message.payload.from;
-  let content = message.payload.content;
-  var activeChat = document.querySelector('input[name="users"]:checked').value;
+  console.log(message);
+  let from_me = message.payload[1].from_me;
+  let content = message.payload[1].content;
+  let id = message.payload[0];
+  var activeChat = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
 
-  if (from == activeChat) {
-    displayMessage(from, content);
+  if (id == activeChat) {
+    displayMessage(from_me, content);
   } else {
-    document.getElementById(from).className += " notification";
+    document.getElementById(id).className += " notification";
   }
 });
 
-function displayMessage(from, content) {
-  console.log("---", from, content);
+function displayMessage(from_me, content) {
+  console.log("---", from_me, content);
   var newDiv = document.createElement("div");
   newDiv.className = "dynamic-div";
-  if (from == userName) {
+  if (from_me) {
     newDiv.className += " from-me";
   }
   newDiv.textContent = content;
@@ -71,11 +77,12 @@ function getUsers() {
 
 listen("USR", (message) => {
   var arr = message.payload;
+  console.log(arr);
 
   var friendsList = document.getElementById("friends");
   friendsList.innerHTML = ""; // clear the list
 
-  for (var i = 0; i < arr.length; i++) {
+  for (var i = 0; i < arr.length; i += 2) {
     var listItem = document.createElement("li");
 
     var radioButton = document.createElement("input");
@@ -87,7 +94,7 @@ listen("USR", (message) => {
 
     var label = document.createElement("label");
     label.htmlFor = radioButton.id;
-    label.appendChild(document.createTextNode(arr[i]));
+    label.appendChild(document.createTextNode(arr[i + 1]));
 
     listItem.appendChild(radioButton);
     listItem.appendChild(label);
@@ -122,9 +129,9 @@ function login() {
 }
 
 listen("LGN", (message) => {
-  userName = message.payload;
-  if (userName) {
-    document.getElementById("your-username").innerText = userName;
+  userId = message.payload;
+  if (userId) {
+    document.getElementById("your-username").innerText = userId;
     var div = document.getElementById("no");
     div.style.display = "none";
     var div = document.getElementById("yes");

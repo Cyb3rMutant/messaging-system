@@ -5,91 +5,87 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct Message {
-    pub from: String,
+    pub from_me: bool,
     pub content: String,
 }
 
-impl<'de> Deserialize<'de> for Message {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value: Value = Deserialize::deserialize(deserializer)?;
-
-        // Ensure the input is a JSON object
-        let obj = match value {
-            Value::Object(obj) => obj,
-            _ => return Err(serde::de::Error::custom("Expected a JSON object")),
-        };
-
-        // Extract values from the JSON object
-        let sender = obj.get("sender").and_then(|v| v.as_str());
-        let content = obj.get("content").and_then(|v| v.as_str());
-
-        // Check if required fields are present
-        let sender = sender.ok_or_else(|| serde::de::Error::missing_field("sender"))?;
-        let content = content.ok_or_else(|| serde::de::Error::missing_field("content"))?;
-
-        // Initialize the Message struct
-        Ok(Message {
-            from: sender.to_string(),
-            content: content.to_string(),
-        })
-    }
-}
+// impl<'de> Deserialize<'de> for Message {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: serde::Deserializer<'de>,
+//     {
+//         let value: Value = Deserialize::deserialize(deserializer)?;
+//
+//         // Ensure the input is a JSON object
+//         let obj = match value {
+//             Value::Object(obj) => obj,
+//             _ => return Err(serde::de::Error::custom("Expected a JSON object")),
+//         };
+//
+//         // Extract values from the JSON object
+//         let sender = obj.get("sender").and_then(|v| v.as_str());
+//         let content = obj.get("content").and_then(|v| v.as_str());
+//
+//         // Check if required fields are present
+//         let sender = sender.ok_or_else(|| serde::de::Error::missing_field("sender"))?;
+//         let content = content.ok_or_else(|| serde::de::Error::missing_field("content"))?;
+//
+//         // Initialize the Message struct
+//         Ok(Message {
+//             from_me: sender.parse().unwrap(),
+//             content: content.to_string(),
+//         })
+//     }
+// }
 
 #[derive(Debug)]
 pub struct Chats {
-    me: String,
-    chats: HashMap<String, VecDeque<Message>>,
+    me: i32,
+    chats: HashMap<i32, VecDeque<Message>>,
 }
 
 impl Chats {
     pub fn new() -> Chats {
         Chats {
-            me: String::new(),
+            me: i32::default(),
             chats: HashMap::new(),
         }
     }
 
-    pub fn set_name(&mut self, name: String) {
-        self.me = name;
+    pub fn set_id(&mut self, id: i32) {
+        self.me = id;
     }
 
-    pub fn add_chat(&mut self, user: String) {
-        if self.chats.contains_key(&user) {
+    pub fn add_chat(&mut self, chat_id: i32) {
+        if self.chats.contains_key(&chat_id) {
             return;
         }
-        self.chats.insert(user, VecDeque::new());
+        self.chats.insert(chat_id, VecDeque::new());
     }
 
-    fn add_message(&mut self, user: &str, content: String, from_me: bool) -> Message {
-        let message = Message {
-            from: if from_me {
-                self.me.clone()
-            } else {
-                user.to_owned()
-            },
-            content,
-        };
-        self.chats.get_mut(user).unwrap().push_back(message.clone());
+    fn add_message(&mut self, user: i32, content: String, from_me: bool) -> Message {
+        let message = Message { from_me, content };
+        self.chats
+            .get_mut(&user)
+            .unwrap()
+            .push_back(message.clone());
         message
     }
 
-    pub fn sent_message(&mut self, user: &str, content: String) -> Message {
+    pub fn sent_message(&mut self, user: i32, content: String) -> Message {
         self.add_message(user, content, true)
     }
 
-    pub fn received_message(&mut self, user: &str, content: String) -> Message {
+    pub fn received_message(&mut self, user: i32, content: String) -> Message {
         self.add_message(user, content, false)
     }
 
-    pub fn get_chat(&self, user: &str) -> &VecDeque<Message> {
-        println!("{:?}", self.chats.get(user).unwrap());
-        self.chats.get(user).unwrap()
+    pub fn get_chat(&self, user: i32) -> &VecDeque<Message> {
+        println!("{:?}", self.chats.get(&user).unwrap());
+        self.chats.get(&user).unwrap()
     }
 
-    pub fn is_me(&self, user: &str) -> bool {
+    pub fn is_me(&self, user: i32) -> bool {
         self.me == user
     }
 

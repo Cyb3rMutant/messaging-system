@@ -44,6 +44,7 @@ impl Manager {
                         let mut clients = self.clients.lock().await;
                         let messages = model::load_messages(id, &self.pool).await;
                         clients.login(id, writer, messages).await;
+                        println!("{id}");
                         sender.send(Ok(id)).unwrap();
                     } else {
                         println!("wrong\n");

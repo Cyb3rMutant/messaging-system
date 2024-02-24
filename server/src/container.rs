@@ -18,6 +18,7 @@ impl Container {
     pub fn new(users: Vec<(i32, String, i32, String, i32)>) -> Self {
         let mut nodes = HashMap::new();
         let mut network = UnGraph::new_undirected();
+        println!("{users:?}");
 
         for (id_1, username_1, id_2, username_2, chat_id) in users {
             if !nodes.contains_key(&id_1) {
@@ -44,6 +45,7 @@ impl Container {
     // }
 
     pub async fn login(&mut self, id: i32, writer: WriteHalf<TcpStream>, messages: Vec<Message>) {
+        println!("{:?} {:?} {}", self.nodes, self.network, id);
         let messages = serde_json::to_string(&messages).unwrap();
         let message = format!("LGN;{};{}\n", id, messages);
         let node = *self.nodes.get(&id).unwrap();

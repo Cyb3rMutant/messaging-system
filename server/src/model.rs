@@ -77,24 +77,25 @@ pub async fn register(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Res
     };
     let password_hash = generate_hash(password);
 
-    query!(
+    let id = query!(
         "INSERT INTO users (username, password_hash) VALUES (?, ?)",
         &name,
         &password_hash,
     )
     .execute(conn)
     .await
-    .unwrap();
+    .unwrap()
+    .last_insert_id();
 
     query!(
         r#"
-        INSERT INTO chats (username_1, username_2) 
-        SELECT DISTINCT ?, username 
+        INSERT INTO chats (user_id_1, user_id_2) 
+        SELECT DISTINCT ?, user_id 
         FROM users 
-        WHERE username <> ?
+        WHERE user_id <> ?
         "#,
-        name,
-        name
+        id,
+        id
     )
     .execute(conn)
     .await
