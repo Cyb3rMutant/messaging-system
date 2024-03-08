@@ -53,10 +53,6 @@ fn users<'a>(content: &'a str, app: &AppHandle) {
         }
     }
 
-    // for user in users.iter() {
-    //     chats.add_chat(user.to_string());
-    // }
-
     app.emit_all("USR", users).unwrap();
 }
 
@@ -67,6 +63,7 @@ fn logged_in(content: &str, app: &AppHandle) {
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
     chats.set_id(id);
+    chats.load(messages);
 
     app.emit_all("LGN", id).unwrap();
 }

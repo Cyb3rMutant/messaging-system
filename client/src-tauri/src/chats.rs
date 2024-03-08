@@ -37,6 +37,12 @@ pub struct Message {
 //         })
 //     }
 // }
+#[derive(Debug, Deserialize)]
+struct ServerMessage {
+    chat_id: i32,
+    sender_id: i32,
+    content: String,
+}
 
 #[derive(Debug)]
 pub struct Chats {
@@ -65,10 +71,15 @@ impl Chats {
 
     fn add_message(&mut self, user: i32, content: String, from_me: bool) -> Message {
         let message = Message { from_me, content };
-        self.chats
-            .get_mut(&user)
-            .unwrap()
-            .push_back(message.clone());
+        println!("{:?}", self.chats);
+        match self.chats.get_mut(&user) {
+            Some(chat) => {
+                chat.push_back(message.clone());
+            }
+            None => {
+                self.add_chat(user);
+            }
+        }
         message
     }
 
@@ -89,12 +100,10 @@ impl Chats {
         self.me == user
     }
 
-    // pub fn load(&self, messages: &str) {
-    //     let messages: Vec<Message> = serde_json::from_str(messages).unwrap();
-    //     for m in messages.into_iter() {
-    //         if self.is_me(m.from) {
-    //
-    //         }
-    //     }
-    // }
+    pub fn load(&mut self, messages: &str) {
+        let messages: Vec<ServerMessage> = serde_json::from_str(messages).unwrap();
+        for m in messages.into_iter() {
+            self.add_message(m.chat_id, m.content, self.is_me(m.sender_id));
+        }
+    }
 }

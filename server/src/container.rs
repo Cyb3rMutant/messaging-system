@@ -39,18 +39,39 @@ impl Container {
         Container { nodes, network }
     }
 
+    pub fn new_user(&mut self, id: i32, name: String, friends: Vec<(i32, i32)>) {
+        let n = self.network.add_node(Client::new(id, name));
+        for (u_id, chat_id) in friends {
+            let u_n = *self.nodes.get(&u_id).unwrap();
+            self.network.add_edge(n, u_n, chat_id);
+        }
+
+        self.nodes.insert(id, n);
+    }
+
     // fn push(&mut self, client: Client) {
     //     let c = self.clients.get_mut(&client.name).unwrap();
     //     *c = Some(client);
     // }
 
-    pub async fn login(&mut self, id: i32, writer: WriteHalf<TcpStream>, messages: Vec<Message>) {
+    pub async fn login(
+        &mut self,
+        id: i32,
+        writer: WriteHalf<TcpStream>,
+        messages: Vec<Message>,
+    ) -> Result<(), WriteHalf<TcpStream>> {
         println!("{:?} {:?} {}", self.nodes, self.network, id);
         let messages = serde_json::to_string(&messages).unwrap();
+        println!("{messages}");
         let message = format!("LGN;{};{}\n", id, messages);
         let node = *self.nodes.get(&id).unwrap();
-        self.network[node].login(writer);
-        self.send(id, &message).await;
+        match self.network[node].login(writer) {
+            Ok(_) => {
+                self.send(id, &message).await;
+                Ok(())
+            }
+            Err(w) => Err(w),
+        }
     }
 
     pub fn remove(&mut self, id: i32) {

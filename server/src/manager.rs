@@ -43,9 +43,13 @@ impl Manager {
                         println!("in\n");
                         let mut clients = self.clients.lock().await;
                         let messages = model::load_messages(id, &self.pool).await;
-                        clients.login(id, writer, messages).await;
-                        println!("{id}");
-                        sender.send(Ok(id)).unwrap();
+                        match clients.login(id, writer, messages).await {
+                            Ok(_) => {
+                                println!("{id}");
+                                sender.send(Ok(id)).unwrap();
+                            }
+                            Err(w) => sender.send(Err(w)).unwrap(),
+                        };
                     } else {
                         println!("wrong\n");
                         let message = format!("ERR;PWD\n");
@@ -60,7 +64,9 @@ impl Manager {
                     // check db
                     let (name, password) = name_pass.trim().split_once(';').unwrap();
                     println!("{:?}{:?}\n", name, password);
-                    if let Ok(_) = model::register(&name, &password, &self.pool).await {
+                    if let Ok((id, friends)) = model::register(&name, &password, &self.pool).await {
+                        let mut clients = self.clients.lock().await;
+                        clients.new_user(id, name.to_owned(), friends);
                         sender.send(true).unwrap();
                     } else {
                         sender.send(false).unwrap();

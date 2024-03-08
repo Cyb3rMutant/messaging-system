@@ -39,8 +39,9 @@ pub async fn load_messages(id: i32, conn: &sqlx::MySqlPool) -> Vec<Message> {
         FROM
             messages
         WHERE
-            sender_id = ?;
+            chat_id IN (SELECT chat_id FROM chats WHERE user_id_1 = ? OR user_id_2 = ?);
         "#,
+        id,
         id
     )
     .fetch_all(conn)
@@ -67,7 +68,11 @@ pub async fn login(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Result
     }
 }
 
-pub async fn register(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Result<(), ()> {
+pub async fn register(
+    name: &str,
+    password: &str,
+    conn: &sqlx::MySqlPool,
+) -> Result<(i32, Vec<(i32, i32)>), ()> {
     match query!("SELECT * FROM users WHERE username = ?", &name)
         .fetch_one(conn)
         .await
@@ -101,7 +106,21 @@ pub async fn register(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Res
     .await
     .unwrap();
 
-    Ok(())
+    let friends = query!(
+        "SELECT user_id_2, chat_id FROM chats where user_id_1 = ?",
+        id
+    )
+    .fetch_all(conn)
+    .await
+    .unwrap();
+
+    Ok((
+        id as i32,
+        friends
+            .into_iter()
+            .map(|f| (f.user_id_2, f.chat_id))
+            .collect(),
+    ))
 }
 
 pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) -> Result<(), ()> {

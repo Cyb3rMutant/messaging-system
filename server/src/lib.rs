@@ -68,13 +68,13 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 .unwrap();
                 println!("sent");
                 match rx.await.unwrap() {
-                    true => writer.write_all("REG;Y".as_bytes()).await.unwrap(),
-                    false => writer.write_all("REG;N".as_bytes()).await.unwrap(),
+                    true => writer.write_all("REG;Y\n".as_bytes()).await.unwrap(),
+                    false => writer.write_all("REG;N\n".as_bytes()).await.unwrap(),
                 }
                 println!("done");
             }
             _ => writer
-                .write_all("ERR;YOU ARE NOT LOGGED IN".as_bytes())
+                .write_all("ERR;YOU ARE NOT LOGGED IN\n".as_bytes())
                 .await
                 .unwrap(),
         }
