@@ -21,6 +21,7 @@ pub async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
             "MSG" => receive(content, &app),
             "USR" => users(content, &app),
             "LGN" => logged_in(content, &app),
+            "STS" => set_seen(content, &app),
             "REG" => app.emit_all("REG", content).unwrap(),
             "ERR" => app.emit_all("ERR", content).unwrap(),
             _ => app.emit_all("OTH", content).unwrap(),
@@ -66,4 +67,16 @@ fn logged_in(content: &str, app: &AppHandle) {
     chats.load(messages);
 
     app.emit_all("LGN", id).unwrap();
+}
+
+fn set_seen(content: &str, app: &AppHandle) {
+    let (chat_id, status) = content.split_once(';').unwrap();
+    let chat_id: i32 = chat_id.parse().unwrap();
+    let status: i32 = status.parse().unwrap();
+
+    let state = app.state::<GlobalChats>();
+    let mut chats = state.0.write().unwrap();
+    chats.my_message_read(chat_id);
+
+    app.emit_all("STS", chat_id).unwrap();
 }

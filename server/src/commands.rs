@@ -26,13 +26,18 @@ pub enum Command {
     GET {
         id: i32,
     },
+    UPDATE {
+        chat_id: i32,
+        id: i32,
+        new_status: i32,
+    },
 }
 
 impl Command {
     pub fn send(content: &str, id: i32) -> Result<Command, String> {
         match content.split_once(';') {
             Some((chat_id, message)) => Ok(Command::Send {
-                message: Message::new(chat_id.parse().unwrap(), id, message.to_owned()),
+                message: Message::new(chat_id.parse().unwrap(), id, message.to_owned(), 1),
             }),
             _ => Err(String::new()),
         }

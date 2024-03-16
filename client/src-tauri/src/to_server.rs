@@ -22,6 +22,16 @@ pub fn send(user: i32, message: String, sender: State<'_, Sender>, chats: State<
 }
 
 #[tauri::command]
+pub fn read_chat(user: i32, sender: State<'_, Sender>, chats: State<'_, GlobalChats>) {
+    println!("in reading chat");
+    chats.0.write().unwrap().other_message_read(user);
+    let mut writer = sender.0.lock().unwrap();
+    writer
+        .write_all(format!("STS;{user};2\n").as_bytes())
+        .expect("Failed to send message to the server");
+}
+
+#[tauri::command]
 pub fn getusers(sender: State<'_, Sender>) {
     let mut writer = sender.0.lock().unwrap();
     writer

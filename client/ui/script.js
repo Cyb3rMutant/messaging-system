@@ -15,7 +15,7 @@ function getChat() {
     for (let i = 0; i < messages.length; i++) {
       const element = messages[i];
 
-      displayMessage(element.from_me, element.content);
+      displayMessage(element.from_me, element.content, element.status);
     }
   });
 }
@@ -32,7 +32,7 @@ function sendMessage() {
   // Clear the input
   messageInput.value = "";
 
-  displayMessage(true, messageText);
+  displayMessage(true, messageText, 1);
 
   invoke("send", { user: user, message: messageText });
 }
@@ -41,24 +41,59 @@ listen("MSG", (message) => {
   console.log(message);
   let from_me = message.payload[1].from_me;
   let content = message.payload[1].content;
+  let status = message.payload[1].status;
   let id = message.payload[0];
   var activeChat = parseInt(
     document.querySelector('input[name="users"]:checked').value,
   );
 
   if (id == activeChat) {
-    displayMessage(from_me, content);
+    displayMessage(from_me, content, status);
   } else {
     document.getElementById(id).className += " notification";
   }
 });
 
-function displayMessage(from_me, content) {
+// messages
+function setSeen() {
+  var user = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
+  console.log("setting seen for chat ", user);
+  // Get the value from the input
+  invoke("read_chat", { user: user });
+}
+
+listen("STS", (message) => {
+  console.log(message);
+  let id = message.payload;
+  var activeChat = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
+
+  if (id == activeChat) {
+    // setSeen();
+    getChat();
+  }
+});
+
+function displayMessage(from_me, content, status) {
   console.log("---", from_me, content);
   var newDiv = document.createElement("div");
   newDiv.className = "dynamic-div";
   if (from_me) {
     newDiv.className += " from-me";
+  }
+  switch (status) {
+    case 1:
+      newDiv.style.background = "red";
+      break;
+    case 2:
+      newDiv.style.background = "green";
+      break;
+    default:
+      console.log(status, "huh");
+      break;
   }
   newDiv.textContent = content;
 
@@ -90,7 +125,10 @@ listen("USR", (message) => {
     radioButton.name = "users";
     radioButton.id = arr[i];
     radioButton.value = arr[i];
-    radioButton.addEventListener("change", getChat);
+    radioButton.addEventListener("change", () => {
+      // setSeen();
+      getChat();
+    });
 
     var label = document.createElement("label");
     label.htmlFor = radioButton.id;

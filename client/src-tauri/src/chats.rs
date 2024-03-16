@@ -7,41 +7,15 @@ use serde_json::Value;
 pub struct Message {
     pub from_me: bool,
     pub content: String,
+    pub status: i32,
 }
 
-// impl<'de> Deserialize<'de> for Message {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: serde::Deserializer<'de>,
-//     {
-//         let value: Value = Deserialize::deserialize(deserializer)?;
-//
-//         // Ensure the input is a JSON object
-//         let obj = match value {
-//             Value::Object(obj) => obj,
-//             _ => return Err(serde::de::Error::custom("Expected a JSON object")),
-//         };
-//
-//         // Extract values from the JSON object
-//         let sender = obj.get("sender").and_then(|v| v.as_str());
-//         let content = obj.get("content").and_then(|v| v.as_str());
-//
-//         // Check if required fields are present
-//         let sender = sender.ok_or_else(|| serde::de::Error::missing_field("sender"))?;
-//         let content = content.ok_or_else(|| serde::de::Error::missing_field("content"))?;
-//
-//         // Initialize the Message struct
-//         Ok(Message {
-//             from_me: sender.parse().unwrap(),
-//             content: content.to_string(),
-//         })
-//     }
-// }
 #[derive(Debug, Deserialize)]
 struct ServerMessage {
     chat_id: i32,
     sender_id: i32,
     content: String,
+    status: i32,
 }
 
 #[derive(Debug)]
@@ -70,7 +44,11 @@ impl Chats {
     }
 
     fn add_message(&mut self, user: i32, content: String, from_me: bool) -> Message {
-        let message = Message { from_me, content };
+        let message = Message {
+            from_me,
+            content,
+            status: 1,
+        };
         println!("{:?}", self.chats);
         match self.chats.get_mut(&user) {
             Some(chat) => {
@@ -104,6 +82,23 @@ impl Chats {
         let messages: Vec<ServerMessage> = serde_json::from_str(messages).unwrap();
         for m in messages.into_iter() {
             self.add_message(m.chat_id, m.content, self.is_me(m.sender_id));
+        }
+    }
+    pub fn my_message_read(&mut self, user: i32) {
+        self.set_read(user, true)
+    }
+    pub fn other_message_read(&mut self, user: i32) {
+        self.set_read(user, false)
+    }
+    fn set_read(&mut self, user: i32, from_me: bool) {
+        for m in self.chats.get_mut(&user).unwrap().iter_mut().rev() {
+            if m.from_me != from_me {
+                continue;
+            }
+            if m.status == 2 {
+                break;
+            }
+            m.status = 2;
         }
     }
 }

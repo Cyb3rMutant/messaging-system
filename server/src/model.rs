@@ -35,7 +35,8 @@ pub async fn load_messages(id: i32, conn: &sqlx::MySqlPool) -> Vec<Message> {
         SELECT
             chat_id,
             sender_id,
-            content
+            content,
+            status
         FROM
             messages
         WHERE
@@ -123,16 +124,26 @@ pub async fn register(
     ))
 }
 
-pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) -> Result<(), ()> {
+pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) {
     query!(
-        "INSERT INTO messages (content, sender_id, chat_id) VALUES (?, ?, ?)",
+        "INSERT INTO messages (content, sender_id, chat_id, status) VALUES (?, ?, ?, ?)",
         message.get_content(),
         message.sender_id,
-        message.chat_id
+        message.chat_id,
+        message.status
     )
     .execute(conn)
     .await
     .unwrap();
+}
 
-    Ok(())
+pub async fn set_seen(chat_id: i32, user_id: i32, conn: &sqlx::MySqlPool) {
+    query!(
+        "UPDATE messages SET status = 2 WHERE chat_id = ? AND sender_id = ?",
+        chat_id,
+        user_id
+    )
+    .execute(conn)
+    .await
+    .unwrap();
 }

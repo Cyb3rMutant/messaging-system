@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 use sqlx::{MySql, Pool};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
-use crate::{commands::Command, container::Container, model};
+use crate::{commands::Command, container::Container, message, model};
 
 #[derive(Debug)]
 pub struct Manager {
@@ -73,8 +73,8 @@ impl Manager {
                     };
                 }
                 Send { message } => {
-                    model::new_message(&message, &self.pool).await.unwrap();
-                    let m = format!("MSG;{};{}", message.chat_id, message.content);
+                    model::new_message(&message, &self.pool).await;
+                    let m = format!("MSG;{};{}\n", message.chat_id, message.content);
                     println!("{message:?}");
                     let mut clients = self.clients.lock().await;
                     let receiver = clients.get_other(message.chat_id, message.sender_id);
@@ -92,6 +92,16 @@ impl Manager {
                 Remove { id } => {
                     let mut clients = self.clients.lock().await;
                     clients.remove(id);
+                }
+                UPDATE {
+                    chat_id,
+                    id,
+                    new_status,
+                } => {
+                    let mut clients = self.clients.lock().await;
+                    let receiver = clients.get_other(chat_id, id);
+                    model::set_seen(chat_id, receiver, &self.pool).await;
+                    clients.send(receiver, &format!("STS;{chat_id};2\n")).await;
                 }
             };
         }

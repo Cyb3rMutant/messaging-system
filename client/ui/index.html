@@ -1,49 +1,51 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <link rel="stylesheet" href="styles.css" />
-    <script src="script.js"></script>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <body>
-    <div id="no">
-      <form id="loginForm">
-        <p id="register-message"></p>
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="script.js"></script>
+</head>
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required />
+<body>
+  <div id="no">
+    <form id="loginForm">
+      <p id="register-message"></p>
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required />
 
-        <button type="button" onclick="login()">Login</button>
-        <button type="button" onclick="register()">Register</button>
-      </form>
-    </div>
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required />
 
-    <div id="yes" style="display: none">
-      <div id="chat-container">
-        <div id="friend-list">
-          <h1 id="your-username"></h1>
-          <h2>Friends</h2>
-          <button onclick="getUsers()">get users</button>
-          <button onclick="getChat()">get chat</button>
-          <ul id="friends"></ul>
+      <button type="button" onclick="login()">Login</button>
+      <button type="button" onclick="register()">Register</button>
+    </form>
+  </div>
+
+  <div id="yes" style="display: none">
+    <div id="chat-container">
+      <div id="friend-list">
+        <h1 id="your-username"></h1>
+        <h2>Friends</h2>
+        <button onclick="getUsers()">get users</button>
+        <button onclick="getChat()">get chat</button>
+        <ul id="friends"></ul>
+      </div>
+      <div id="chat">
+        <div id="container">
+          <!-- Existing divs will be appended here -->
         </div>
-        <div id="chat">
-          <div id="container">
-            <!-- Existing divs will be appended here -->
-          </div>
-          <div class="footer">
-            <input type="text" id="message" placeholder="Type a message..." />
-            <button id="send-button" onclick="sendMessage()">
-              Send Message
-            </button>
-          </div>
+        <div class="footer">
+          <input type="text" id="message" placeholder="Type a message..." />
+          <button id="send-button" onclick="sendMessage()">
+            Send Message
+          </button>
         </div>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>

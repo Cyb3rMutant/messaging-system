@@ -92,13 +92,23 @@ pub async fn process(stream: TcpStream, tx: mpsc::Sender<Command>) {
                 break;
             }
             Ok(_) => {
-                let Some((command, content)) = buf.split_once(';') else {
+                let Some((command, content)) = buf.trim().split_once(';') else {
                         break;
                     };
+                println!("{command} {content}");
                 match command {
                     "SND" => Command::send(content, id),
                     // "CNT" => Command::connect(content, id),
                     "GET" => Ok(Command::GET { id }),
+                    "STS" => Ok({
+                        let (chat_id, status) = content.split_once(';').unwrap();
+                        println!("{chat_id:?} {status:?}");
+                        Command::UPDATE {
+                            chat_id: chat_id.parse().unwrap(),
+                            id,
+                            new_status: status.parse().unwrap(),
+                        }
+                    }),
                     _ => break,
                 }
             }
