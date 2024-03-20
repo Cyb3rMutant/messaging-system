@@ -34,12 +34,12 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn send(content: &str, id: i32) -> Result<Command, String> {
+    pub fn send(content: &str, id: i32) -> Result<Command, ()> {
         match content.split_once(';') {
             Some((chat_id, message)) => Ok(Command::Send {
                 message: Message::new(chat_id.parse().unwrap(), id, message.to_owned(), 1),
             }),
-            _ => Err(String::new()),
+            _ => Err(()),
         }
     }
 
