@@ -18,7 +18,7 @@ pub fn send(user: i32, message: String, sender: State<'_, Sender>, chats: State<
         .write_all(format!("SND;{};{}\n", user, message).as_bytes())
         .expect("Failed to send message to the server");
 
-    chats.0.write().unwrap().sent_message(user, message);
+    chats.0.write().unwrap().pend_message(user, message);
 }
 
 #[tauri::command]
@@ -27,7 +27,7 @@ pub fn read_chat(user: i32, sender: State<'_, Sender>, chats: State<'_, GlobalCh
     chats.0.write().unwrap().other_message_read(user);
     let mut writer = sender.0.lock().unwrap();
     writer
-        .write_all(format!("STS;{user};2\n").as_bytes())
+        .write_all(format!("STS;{user}\n").as_bytes())
         .expect("Failed to send message to the server");
 }
 
@@ -55,5 +55,36 @@ pub fn login(username: String, password: String, sender: State<'_, Sender>) {
     let mut writer = sender.0.lock().unwrap();
     writer
         .write_all(format!("LGN;{};{}\n", username, password).as_bytes())
+        .expect("Failed to send message to the server");
+}
+
+#[tauri::command]
+pub fn delete(
+    user: i32,
+    message_id: i32,
+    sender: State<'_, Sender>,
+    chats: State<'_, GlobalChats>,
+) {
+    println!("deleting");
+    chats.0.write().unwrap().delete(user, message_id);
+    let mut writer = sender.0.lock().unwrap();
+    writer
+        .write_all(format!("DEL;{user};{message_id}\n").as_bytes())
+        .expect("Failed to send message to the server");
+}
+
+#[tauri::command]
+pub fn update(
+    user: i32,
+    message_id: i32,
+    content: String,
+    sender: State<'_, Sender>,
+    chats: State<'_, GlobalChats>,
+) {
+    println!("updating");
+    chats.0.write().unwrap().update(user, message_id, &content);
+    let mut writer = sender.0.lock().unwrap();
+    writer
+        .write_all(format!("UPD;{user};{message_id};{content}\n").as_bytes())
         .expect("Failed to send message to the server");
 }

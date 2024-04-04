@@ -40,11 +40,23 @@ impl Container {
     }
 
     pub fn new_user(&mut self, id: i32, name: String, friends: Vec<(i32, i32)>) {
+        println!(
+            "------- {:?} ------- {:?} ------- {}",
+            self.nodes, self.network, id
+        );
         let n = self.network.add_node(Client::new(id, name));
+        println!(
+            "------- {:?} ------- {:?} ------- {}",
+            self.nodes, self.network, id
+        );
         for (u_id, chat_id) in friends {
             let u_n = *self.nodes.get(&u_id).unwrap();
             self.network.add_edge(n, u_n, chat_id);
         }
+        println!(
+            "------- {:?} ------- {:?} ------- {}",
+            self.nodes, self.network, id
+        );
 
         self.nodes.insert(id, n);
     }

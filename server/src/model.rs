@@ -33,6 +33,7 @@ pub async fn load_messages(id: i32, conn: &sqlx::MySqlPool) -> Vec<Message> {
         Message,
         r#"
         SELECT
+            message_id,
             chat_id,
             sender_id,
             content,
@@ -124,7 +125,7 @@ pub async fn register(
     ))
 }
 
-pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) {
+pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) -> i32 {
     query!(
         "INSERT INTO messages (content, sender_id, chat_id, status) VALUES (?, ?, ?, ?)",
         message.get_content(),
@@ -134,7 +135,8 @@ pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) {
     )
     .execute(conn)
     .await
-    .unwrap();
+    .unwrap()
+    .last_insert_id() as i32
 }
 
 pub async fn set_seen(chat_id: i32, user_id: i32, conn: &sqlx::MySqlPool) {
@@ -146,4 +148,46 @@ pub async fn set_seen(chat_id: i32, user_id: i32, conn: &sqlx::MySqlPool) {
     .execute(conn)
     .await
     .unwrap();
+}
+pub async fn delete(message_id: i32, conn: &sqlx::MySqlPool) {
+    query!(
+        "UPDATE messages SET status = 3, content = '' WHERE message_id = ?",
+        message_id
+    )
+    .execute(conn)
+    .await
+    .unwrap();
+}
+pub async fn update(message: &Message, conn: &sqlx::MySqlPool) {
+    query!(
+        "UPDATE messages SET status = 4, content = ? WHERE message_id = ?",
+        message.content,
+        message.message_id
+    )
+    .execute(conn)
+    .await
+    .unwrap();
+}
+
+pub async fn clear(conn: &sqlx::MySqlPool) {
+    query!("DELETE FROM messages;").execute(conn).await.unwrap();
+    query!("ALTER TABLE messages AUTO_INCREMENT = 1;")
+        .execute(conn)
+        .await
+        .unwrap();
+    query!("DELETE FROM chats;").execute(conn).await.unwrap();
+    query!("ALTER TABLE chats AUTO_INCREMENT = 1;")
+        .execute(conn)
+        .await
+        .unwrap();
+    query!("DELETE FROM blocked;").execute(conn).await.unwrap();
+    query!("ALTER TABLE blocked AUTO_INCREMENT = 1;")
+        .execute(conn)
+        .await
+        .unwrap();
+    query!("DELETE FROM users;").execute(conn).await.unwrap();
+    query!("ALTER TABLE users AUTO_INCREMENT = 1;")
+        .execute(conn)
+        .await
+        .unwrap();
 }

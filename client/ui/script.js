@@ -15,7 +15,12 @@ function getChat() {
     for (let i = 0; i < messages.length; i++) {
       const element = messages[i];
 
-      displayMessage(element.from_me, element.content, element.status);
+      displayMessage(
+        element.message_id,
+        element.from_me,
+        element.content,
+        element.status,
+      );
     }
   });
 }
@@ -32,13 +37,14 @@ function sendMessage() {
   // Clear the input
   messageInput.value = "";
 
-  displayMessage(true, messageText, 1);
+  // displayMessage(0, true, messageText, 1);
 
   invoke("send", { user: user, message: messageText });
 }
 
 listen("MSG", (message) => {
   console.log(message);
+  let message_id = message.payload[1].message_id;
   let from_me = message.payload[1].from_me;
   let content = message.payload[1].content;
   let status = message.payload[1].status;
@@ -48,9 +54,26 @@ listen("MSG", (message) => {
   );
 
   if (id == activeChat) {
-    displayMessage(from_me, content, status);
+    setSeen();
+    displayMessage(message_id, from_me, content, 2);
   } else {
     document.getElementById(id).className += " notification";
+  }
+});
+
+listen("MID", (message) => {
+  console.log(message);
+  let message_id = message.payload[1].message_id;
+  let from_me = message.payload[1].from_me;
+  let content = message.payload[1].content;
+  let status = message.payload[1].status;
+  let id = message.payload[0];
+  var activeChat = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
+
+  if (id == activeChat) {
+    displayMessage(message_id, from_me, content, status);
   }
 });
 
@@ -72,30 +95,63 @@ listen("STS", (message) => {
   );
 
   if (id == activeChat) {
-    // setSeen();
-    getChat();
+    let ch = document.getElementById("container").children;
+    for (let i = ch.length - 1; i >= 0; i--) {
+      let element = ch[i];
+      console.log(element, element.style, element.style.background);
+      if (
+        element.classList.contains("from-me") &&
+        element.style.background == "green"
+      ) {
+        break;
+      }
+      if (element.stylr.background != "blue") {
+        continue;
+      }
+      element.style.background = "green";
+    }
   }
 });
 
-function displayMessage(from_me, content, status) {
+function displayMessage(message_id, from_me, content, status) {
   console.log("---", from_me, content);
   var newDiv = document.createElement("div");
   newDiv.className = "dynamic-div";
+  newDiv.id = "m" + message_id;
   if (from_me) {
     newDiv.className += " from-me";
   }
   switch (status) {
     case 1:
-      newDiv.style.background = "red";
+      newDiv.style.background = "blue";
       break;
     case 2:
       newDiv.style.background = "green";
+      break;
+    case 3:
+      newDiv.style.background = "red";
+      break;
+    case 4:
+      newDiv.style.background = "purple";
       break;
     default:
       console.log(status, "huh");
       break;
   }
-  newDiv.textContent = content;
+
+  var messageContent = document.createElement("span");
+  messageContent.textContent = content;
+
+  if (from_me && status != 3) {
+    var deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.onclick = function () {
+      // Call delete function
+      deleteMessage(message_id);
+    };
+    newDiv.appendChild(deleteButton);
+  }
+  newDiv.appendChild(messageContent);
 
   // Append the new div to the container
   document.getElementById("container").appendChild(newDiv);
@@ -126,7 +182,7 @@ listen("USR", (message) => {
     radioButton.id = arr[i];
     radioButton.value = arr[i];
     radioButton.addEventListener("change", () => {
-      // setSeen();
+      setSeen();
       getChat();
     });
 
@@ -190,4 +246,79 @@ listen("ERR", (message) => {
 
 listen("OTH", (message) => {
   console.log(message);
+});
+
+function deleteMessage(message_id) {
+  let elem = document.getElementById("m" + message_id);
+  elem.style.background = "red";
+  elem.getElementsByTagName("span")[0].textContent = "";
+  elem.getElementsByTagName("button")[0].remove();
+
+  var activeChat = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
+  invoke("delete", { user: activeChat, messageId: message_id });
+}
+
+listen("DEL", (message) => {
+  console.log(message);
+  let message_id = message.payload[1];
+  let id = message.payload[0];
+  var activeChat = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
+
+  if (id == activeChat) {
+    let elem = document.getElementById("m" + message_id);
+    elem.style.background = "red";
+    elem.getElementsByTagName("span")[0].textContent = "";
+  }
+});
+
+function editMessage() {
+  var messageInput = document.getElementById("message");
+  var messageText = messageInput.value;
+  var user = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
+
+  // Clear the input
+  messageInput.value = "";
+
+  let ch = document.getElementById("container").children;
+  for (let i = ch.length - 1; i >= 0; i--) {
+    let element = ch[i];
+    if (element.classList.contains("from-me")) {
+      var elem = element;
+      break;
+    }
+  }
+
+  elem.style.background = "purple";
+  elem.getElementsByTagName("span")[0].textContent = messageText;
+
+  var activeChat = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
+  invoke("update", {
+    user: activeChat,
+    messageId: parseInt(parseInt(elem.id.substring(1))),
+    content: messageText,
+  });
+}
+
+listen("UPD", (message) => {
+  console.log(message);
+  let content = message.payload[2];
+  let message_id = message.payload[1];
+  let id = message.payload[0];
+  var activeChat = parseInt(
+    document.querySelector('input[name="users"]:checked').value,
+  );
+
+  if (id == activeChat) {
+    let elem = document.getElementById("m" + message_id);
+    elem.style.background = "purple";
+    elem.getElementsByTagName("span")[0].textContent = content;
+  }
 });

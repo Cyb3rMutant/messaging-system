@@ -26,11 +26,20 @@ pub enum Command {
     GET {
         id: i32,
     },
-    UPDATE {
+    Status {
         chat_id: i32,
         id: i32,
-        new_status: i32,
     },
+    Delete {
+        chat_id: i32,
+        id: i32,
+        message_id: i32,
+    },
+    Update {
+        message: Message,
+    },
+
+    Testing_Clear,
 }
 
 impl Command {
@@ -42,8 +51,32 @@ impl Command {
             _ => Err(()),
         }
     }
+    pub fn status(content: &str, id: i32) -> Result<Command, ()> {
+        Ok(Command::Status {
+            chat_id: content.parse().unwrap(),
+            id,
+        })
+    }
 
+    pub fn delete(content: &str, id: i32) -> Result<Command, ()> {
+        let (chat_id, message_id) = content.split_once(';').unwrap();
+        println!("{chat_id:?} {message_id:?}");
+        Ok(Command::Delete {
+            chat_id: chat_id.parse().unwrap(),
+            id,
+            message_id: message_id.parse().unwrap(),
+        })
+    }
     // pub fn connect(other: &str, name: String) -> Result<Command, String> {
+    pub fn update(content: &str, id: i32) -> Result<Command, ()> {
+        let args: Vec<&str> = content.split(';').collect();
+        let chat_id = args.get(0).unwrap().parse().unwrap();
+        let message_id = args.get(1).unwrap().parse().unwrap();
+        let content = args.get(2).unwrap();
+        Ok(Command::Update {
+            message: Message::update(message_id, chat_id, id, content.to_string(), 4),
+        })
+    }
     //     let other = other.trim_end_matches("\r\n").to_owned();
     //
     //     Ok(Command::Connect {

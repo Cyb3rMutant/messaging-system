@@ -21,7 +21,6 @@ async fn main() {
         println!("{stream:?} {addr:?}");
         let tx = tx.clone();
 
-        sleep(Duration::from_secs(2)).await;
         let manager = Arc::clone(&c_manager);
         tokio::spawn(async move {
             Process::run(stream, tx, manager).await;

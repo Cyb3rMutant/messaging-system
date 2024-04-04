@@ -37,7 +37,9 @@ fn main() {
             login,
             register,
             switch_chat,
-            read_chat
+            read_chat,
+            delete,
+            update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -30,7 +30,6 @@
         <h1 id="your-username"></h1>
         <h2>Friends</h2>
         <button onclick="getUsers()">get users</button>
-        <button onclick="getChat()">get chat</button>
         <ul id="friends"></ul>
       </div>
       <div id="chat">
@@ -41,6 +40,9 @@
           <input type="text" id="message" placeholder="Type a message..." />
           <button id="send-button" onclick="sendMessage()">
             Send Message
+          </button>
+          <button id="edit-button" onclick="editMessage()">
+            Edit Message
           </button>
         </div>
       </div>

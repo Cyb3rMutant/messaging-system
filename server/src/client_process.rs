@@ -31,12 +31,26 @@ impl Process {
         p.id = loop {
             let mut buf = String::new();
             println!("2 loop - {:?}", buf);
-            p.reader.read_line(&mut buf).await.unwrap();
+            match p.reader.read_line(&mut buf).await {
+                Ok(0) => {
+                    println!("recieved nothing");
+                    return;
+                }
+                Err(e) => {
+                    println!("{:?}", e);
+                    return;
+                }
+                _ => (),
+            }
             println!("2 loop - {:?}", buf);
 
             let (command, name_pass) = buf.split_once(';').unwrap();
             println!("{:?}{name_pass}", command);
             match command {
+                "TESTINGCLEAR" => {
+                    println!("in clear");
+                    p.tx.send(Command::Testing_Clear).await.unwrap();
+                }
                 "LGN" => {
                     println!("3 login");
                     let (sender, rx) = oneshot::channel();
@@ -110,33 +124,31 @@ impl Process {
         match self.reader.read_line(&mut buf).await {
             Ok(0) => {
                 println!("recieved nothing");
-                Err(())
-            }
-            Ok(_) => {
-                let Some((command, content)) = buf.trim().split_once(';') else {
                 return Err(());
-                    };
-                println!("{command} {content}");
-                match command {
-                    "SND" => Command::send(content, self.id),
-                    // "CNT" => Command::connect(content, id),
-                    "GET" => Ok(Command::GET { id: self.id }),
-                    "STS" => Ok({
-                        let (chat_id, status) = content.split_once(';').unwrap();
-                        println!("{chat_id:?} {status:?}");
-                        Command::UPDATE {
-                            chat_id: chat_id.parse().unwrap(),
-                            id: self.id,
-                            new_status: status.parse().unwrap(),
-                        }
-                    }),
-                    _ => Err(()),
-                }
             }
             Err(e) => {
                 println!("{:?}", e);
-                Err(())
+                return Err(());
             }
+            _ => (),
+        }
+        let Some((command, content)) = buf.trim().split_once(';') else {
+                return Err(());
+                    };
+        println!("{command} {content}");
+        match command {
+            "TESTINGCLEAR" => {
+                println!("in clear");
+                Ok(Command::Testing_Clear)
+            }
+            "SND" => Command::send(content, self.id),
+            // "CNT" => Command::connect(content, id),
+            "GET" => Ok(Command::GET { id: self.id }),
+            "STS" => Command::status(content, self.id),
+            "DEL" => Command::delete(content, self.id),
+            "UPD" => Command::update(content, self.id),
+
+            _ => Err(()),
         }
     }
 }

@@ -4,26 +4,30 @@ use tokio::sync::Mutex;
 use sqlx::{MySql, Pool};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
-use crate::{commands::Command, container::Container, message, model};
+use crate::{commands::Command, container::Container, model};
 
 #[derive(Debug)]
 pub struct Manager {
     rx: Mutex<mpsc::Receiver<Command>>,
     clients: Mutex<Container>,
     pool: Pool<MySql>,
+    testing: bool,
 }
 
 impl Manager {
     pub async fn new(rx: mpsc::Receiver<Command>) -> Manager {
-        let pool = sqlx::mysql::MySqlPool::connect("mysql://yazeed@localhost:3306/messaging")
-            .await
-            .unwrap();
+        let db = "messaging";
+        let pool =
+            sqlx::mysql::MySqlPool::connect(format!("mysql://yazeed@localhost:3306/{db}").as_str())
+                .await
+                .unwrap();
 
         let clients = Container::new(model::load_users(&pool).await);
         Manager {
             rx: Mutex::new(rx),
             clients: Mutex::new(clients),
             pool,
+            testing: if db == "testing" { true } else { false },
         }
     }
     pub async fn run(&self) {
@@ -72,11 +76,18 @@ impl Manager {
                         sender.send(false).unwrap();
                     };
                 }
-                Send { message } => {
-                    model::new_message(&message, &self.pool).await;
-                    let m = format!("MSG;{};{}\n", message.chat_id, message.content);
-                    println!("{message:?}");
+                Send { mut message } => {
                     let mut clients = self.clients.lock().await;
+                    message.message_id = model::new_message(&message, &self.pool).await;
+                    clients
+                        .send(message.sender_id, &format!("MID;{}\n", message.message_id))
+                        .await;
+
+                    let m = format!(
+                        "MSG;{};{};{}\n",
+                        message.chat_id, message.message_id, message.content
+                    );
+                    println!("{message:?}");
                     let receiver = clients.get_other(message.chat_id, message.sender_id);
                     clients.send(receiver, &m).await;
                 }
@@ -93,15 +104,42 @@ impl Manager {
                     let mut clients = self.clients.lock().await;
                     clients.remove(id);
                 }
-                UPDATE {
-                    chat_id,
-                    id,
-                    new_status,
-                } => {
+                Status { chat_id, id } => {
                     let mut clients = self.clients.lock().await;
                     let receiver = clients.get_other(chat_id, id);
                     model::set_seen(chat_id, receiver, &self.pool).await;
-                    clients.send(receiver, &format!("STS;{chat_id};2\n")).await;
+                    clients.send(receiver, &format!("STS;{chat_id}\n")).await;
+                }
+                Delete {
+                    chat_id,
+                    id,
+                    message_id,
+                } => {
+                    let mut clients = self.clients.lock().await;
+                    let receiver = clients.get_other(chat_id, id);
+                    model::delete(message_id, &self.pool).await;
+                    clients
+                        .send(receiver, &format!("DEL;{chat_id};{message_id}\n"))
+                        .await;
+                }
+                Update { message } => {
+                    let mut clients = self.clients.lock().await;
+                    let receiver = clients.get_other(message.chat_id, message.sender_id);
+                    model::update(&message, &self.pool).await;
+                    clients
+                        .send(
+                            receiver,
+                            &format!(
+                                "UPD;{};{};{}\n",
+                                message.chat_id, message.message_id, message.content,
+                            ),
+                        )
+                        .await;
+                }
+                Testing_Clear => {
+                    if self.testing {
+                        model::clear(&self.pool).await;
+                    }
                 }
             };
         }
