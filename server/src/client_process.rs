@@ -108,8 +108,8 @@ impl Process {
 
             match message {
                 Ok(message) => self.tx.send(message).await.unwrap(),
-                _ => {
-                    println!("parse error");
+                Err(e) => {
+                    println!("parse error {e:?}");
                     break;
                 }
             }
@@ -147,6 +147,7 @@ impl Process {
             "STS" => Command::status(content, self.id),
             "DEL" => Command::delete(content, self.id),
             "UPD" => Command::update(content, self.id),
+            "A" => Command::a(content, self.id),
 
             _ => Err(()),
         }

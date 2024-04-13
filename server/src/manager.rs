@@ -54,7 +54,8 @@ impl Manager {
                         println!("in\n");
                         let mut clients = self.clients.lock().await;
                         let messages = model::load_messages(id, &self.pool).await;
-                        match clients.login(id, writer, messages).await {
+                        let p_g = model::chats_p_g_B(id, &self.pool).await;
+                        match clients.login(id, writer, messages, p_g).await {
                             Ok(_) => {
                                 println!("{id}");
                                 sender.send(Ok(id)).unwrap();
@@ -100,10 +101,10 @@ impl Manager {
                 }
                 Connect { id, other } => {
                     let mut clients = self.clients.lock().await;
-                    let chat_id = model::connect(id, other, &self.pool).await;
-                    clients.add_friends(id, other, chat_id);
-                    clients.send(id, &format!("CNT;{chat_id};{other}\n")).await;
-                    clients.send(other, &format!("CNT;{chat_id};{id}\n")).await;
+                    let (p, g) = model::connect(id, other, &self.pool).await;
+                    clients.add_friends(id, other, p);
+                    clients.send(id, &format!("CNT;{p};{other};{g}\n")).await;
+                    clients.send(other, &format!("CNT;{p};{id};{g}\n")).await;
                 }
                 GET { t, id } => {
                     let mut clients = self.clients.lock().await;
@@ -151,6 +152,12 @@ impl Manager {
                             ),
                         )
                         .await;
+                }
+                A { chat_id, id, A } => {
+                    let mut clients = self.clients.lock().await;
+                    let receiver = clients.get_other(chat_id, id);
+                    model::set_ab(chat_id, id, A, &self.pool).await;
+                    clients.send(receiver, &format!("B;{chat_id};{A}\n")).await;
                 }
                 Testing_Clear => {
                     if self.testing {

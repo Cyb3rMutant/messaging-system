@@ -71,6 +71,41 @@ pub async fn load_messages(id: i32, conn: &sqlx::MySqlPool) -> Vec<Message> {
     .await
     .unwrap()
 }
+pub async fn chats_p_g_B(id: i32, conn: &sqlx::MySqlPool) -> Vec<(i32, i32, i32)> {
+    query!(
+        r#"
+        SELECT
+            chat_id AS p,
+            (
+            SELECT
+                (user_id_1 + user_id_2)
+            FROM
+                chats
+            WHERE
+                chat_id = c.chat_id - 1
+            ) AS g,
+    CASE
+        WHEN user_id_1 = ? THEN A
+        WHEN user_id_2 = ? THEN B
+    END AS b
+        FROM
+            chats c
+        WHERE
+            user_id_1 = ?
+            OR user_id_2 = ?;
+        "#,
+        id,
+        id,
+        id,
+        id
+    )
+    .fetch_all(conn)
+    .await
+    .unwrap()
+    .into_iter()
+    .map(|c| (c.p, c.g.unwrap_or(0) as i32, c.b.unwrap()))
+    .collect()
+}
 
 pub async fn login(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Result<i32, String> {
     let user = match query!(
@@ -112,8 +147,14 @@ pub async fn register(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Res
     .last_insert_id();
     Ok(id as i32)
 }
-pub async fn connect(id: i32, other: i32, conn: &sqlx::MySqlPool) -> i32 {
-    query!(
+pub async fn connect(id: i32, other: i32, conn: &sqlx::MySqlPool) -> (i32, i32) {
+    let g = query!("SELECT MAX(chat_id) as c, (user_id_1 + user_id_2) as g FROM chats;")
+        .fetch_one(conn)
+        .await
+        .unwrap()
+        .g
+        .unwrap() as i32;
+    let p = query!(
         " INSERT INTO chats (user_id_1, user_id_2) VALUES (?, ?)",
         id,
         other
@@ -121,7 +162,9 @@ pub async fn connect(id: i32, other: i32, conn: &sqlx::MySqlPool) -> i32 {
     .execute(conn)
     .await
     .unwrap()
-    .last_insert_id() as i32
+    .last_insert_id() as i32;
+
+    (p, g)
 }
 
 pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) -> i32 {
@@ -162,6 +205,23 @@ pub async fn update(message: &Message, conn: &sqlx::MySqlPool) {
         "UPDATE messages SET status = 4, content = ? WHERE message_id = ?",
         message.content,
         message.message_id
+    )
+    .execute(conn)
+    .await
+    .unwrap();
+}
+
+pub async fn set_ab(chat_id: i32, id: i32, val: i32, conn: &sqlx::MySqlPool) {
+    query!(
+        "UPDATE chats
+            SET A = CASE WHEN user_id_1 = ? THEN ? ELSE A END,
+            B = CASE WHEN user_id_2 = ? THEN ? ELSE B END 
+            WHERE chat_id = ?",
+        id,
+        val,
+        id,
+        val,
+        chat_id
     )
     .execute(conn)
     .await

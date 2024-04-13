@@ -72,11 +72,12 @@ impl Container {
         id: i32,
         writer: WriteHalf<TcpStream>,
         messages: Vec<Message>,
+        p_g_b: Vec<(i32, i32, i32)>,
     ) -> Result<(), WriteHalf<TcpStream>> {
         println!("{:?} {:?} {}", self.nodes, self.network, id);
         let messages = serde_json::to_string(&messages).unwrap();
-        println!("{messages}");
-        let message = format!("LGN;{};{}\n", id, messages);
+        let p_g = serde_json::to_string(&p_g_b).unwrap();
+        let message = format!("LGN;{};{};{}\n", id, p_g, messages);
         let node = *self.nodes.get(&id).unwrap();
         match self.network[node].login(writer) {
             Ok(_) => {
@@ -114,10 +115,6 @@ impl Container {
         let mut list = String::new();
 
         let node = *self.nodes.get(&id).unwrap();
-        // for u in self.network.neighbors(node) {
-        //     list.push(';');
-        //     list += &self.network[u].name;
-        // }
         for e in self.network.edges(node) {
             let id = e.weight();
             let u = self.network.edge_endpoints(e.id()).unwrap();

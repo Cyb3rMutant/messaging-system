@@ -3,6 +3,14 @@ let userId = 0;
 const { listen } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.tauri;
 
+function getActiveChat() {
+  let c = document.querySelector('input[name="friends"]:checked');
+  if (c == null) {
+    return -1;
+  }
+  return parseInt(c.value);
+}
+
 // testing
 function getChat() {
   var button = document.querySelector('input[name="friends"]:checked');
@@ -30,10 +38,11 @@ function sendMessage() {
   // Get the value from the input
   var messageInput = document.getElementById("message");
   var messageText = messageInput.value;
-  var user = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
-
+  var user = getActiveChat();
+  console.log(user);
+  if (user < 0) {
+    return;
+  }
   // Clear the input
   messageInput.value = "";
 
@@ -49,10 +58,11 @@ listen("MSG", (message) => {
   let content = message.payload[1].content;
   let status = message.payload[1].status;
   let id = message.payload[0];
-  var activeChat = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
-
+  var activeChat = getActiveChat();
+  console.log(activeChat);
+  if (activeChat < 0) {
+    return;
+  }
   if (id == activeChat) {
     setSeen();
     displayMessage(message_id, from_me, content, 2);
@@ -68,10 +78,11 @@ listen("MID", (message) => {
   let content = message.payload[1].content;
   let status = message.payload[1].status;
   let id = message.payload[0];
-  var activeChat = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
-
+  var activeChat = getActiveChat();
+  console.log(activeChat);
+  if (activeChat < 0) {
+    return;
+  }
   if (id == activeChat) {
     displayMessage(message_id, from_me, content, status);
   }
@@ -79,9 +90,11 @@ listen("MID", (message) => {
 
 // messages
 function setSeen() {
-  var user = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
+  var user = getActiveChat();
+  console.log("setting seen for chat ", user);
+  if (user < 0) {
+    return;
+  }
   console.log("setting seen for chat ", user);
   // Get the value from the input
   invoke("read_chat", { user: user });
@@ -90,10 +103,11 @@ function setSeen() {
 listen("STS", (message) => {
   console.log(message);
   let id = message.payload;
-  var activeChat = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
-
+  var activeChat = getActiveChat();
+  console.log(activeChat);
+  if (activeChat < 0) {
+    return;
+  }
   if (id == activeChat) {
     let ch = document.getElementById("container").children;
     for (let i = ch.length - 1; i >= 0; i--) {
@@ -105,7 +119,7 @@ listen("STS", (message) => {
       ) {
         break;
       }
-      if (element.stylr.background != "blue") {
+      if (element.style.background != "blue") {
         continue;
       }
       element.style.background = "green";
@@ -114,7 +128,6 @@ listen("STS", (message) => {
 });
 
 function displayMessage(message_id, from_me, content, status) {
-  console.log("---", from_me, content);
   var newDiv = document.createElement("div");
   newDiv.className = "dynamic-div";
   newDiv.id = "m" + message_id;
@@ -306,9 +319,11 @@ function deleteMessage(message_id) {
   elem.getElementsByTagName("span")[0].textContent = "";
   elem.getElementsByTagName("button")[0].remove();
 
-  var activeChat = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
+  var activeChat = getActiveChat();
+  console.log(activeChat);
+  if (activeChat < 0) {
+    return;
+  }
   invoke("delete", { user: activeChat, messageId: message_id });
 }
 
@@ -316,10 +331,11 @@ listen("DEL", (message) => {
   console.log(message);
   let message_id = message.payload[1];
   let id = message.payload[0];
-  var activeChat = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
-
+  var activeChat = getActiveChat();
+  console.log(activeChat);
+  if (activeChat < 0) {
+    return;
+  }
   if (id == activeChat) {
     let elem = document.getElementById("m" + message_id);
     elem.style.background = "red";
@@ -330,10 +346,11 @@ listen("DEL", (message) => {
 function editMessage() {
   var messageInput = document.getElementById("message");
   var messageText = messageInput.value;
-  var user = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
-
+  var user = getActiveChat();
+  console.log(user);
+  if (user < 0) {
+    return;
+  }
   // Clear the input
   messageInput.value = "";
 
@@ -349,9 +366,11 @@ function editMessage() {
   elem.style.background = "purple";
   elem.getElementsByTagName("span")[0].textContent = messageText;
 
-  var activeChat = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
+  var activeChat = getActiveChat();
+  console.log(activeChat);
+  if (activeChat < 0) {
+    return;
+  }
   invoke("update", {
     user: activeChat,
     messageId: parseInt(parseInt(elem.id.substring(1))),
@@ -364,10 +383,11 @@ listen("UPD", (message) => {
   let content = message.payload[2];
   let message_id = message.payload[1];
   let id = message.payload[0];
-  var activeChat = parseInt(
-    document.querySelector('input[name="friends"]:checked').value,
-  );
-
+  var activeChat = getActiveChat();
+  console.log(activeChat);
+  if (activeChat < 0) {
+    return;
+  }
   if (id == activeChat) {
     let elem = document.getElementById("m" + message_id);
     elem.style.background = "purple";
@@ -384,6 +404,7 @@ listen("CNT", (message) => {
   console.log(message);
   let chat_id = message.payload[0];
   let user_id = message.payload[1];
+  let a = message.payload[2];
 
   var listItem = document.createElement("li");
   console.log("u" + user_id);
@@ -412,4 +433,5 @@ listen("CNT", (message) => {
   }
   l.appendChild(listItem);
   document.getElementById("u" + user_id).parentElement.remove();
+  invoke("send_a", { user: chat_id, a: A });
 });
