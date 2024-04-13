@@ -3,7 +3,28 @@ use sqlx::{query, query_as};
 
 use crate::message::Message;
 
-pub async fn load_users(conn: &sqlx::MySqlPool) -> Vec<(i32, String, i32, String, i32)> {
+pub async fn load_lonely(conn: &sqlx::MySqlPool) -> Vec<(i32, String)> {
+    query!(
+        r#"
+        SELECT
+            u.*
+        FROM
+            users u
+          LEFT JOIN chats c ON u.user_id = c.user_id_1
+          OR u.user_id = c.user_id_2
+        WHERE
+            c.chat_id IS NULL;
+        "#
+    )
+    .fetch_all(conn)
+    .await
+    .unwrap()
+    .into_iter()
+    .map(|r| (r.user_id, r.username))
+    .collect()
+}
+
+pub async fn load_chats(conn: &sqlx::MySqlPool) -> Vec<(i32, String, i32, String, i32)> {
     query!(
         r#"
         SELECT
@@ -70,11 +91,7 @@ pub async fn login(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Result
     }
 }
 
-pub async fn register(
-    name: &str,
-    password: &str,
-    conn: &sqlx::MySqlPool,
-) -> Result<(i32, Vec<(i32, i32)>), ()> {
+pub async fn register(name: &str, password: &str, conn: &sqlx::MySqlPool) -> Result<i32, ()> {
     match query!("SELECT * FROM users WHERE username = ?", &name)
         .fetch_one(conn)
         .await
@@ -93,36 +110,18 @@ pub async fn register(
     .await
     .unwrap()
     .last_insert_id();
-
+    Ok(id as i32)
+}
+pub async fn connect(id: i32, other: i32, conn: &sqlx::MySqlPool) -> i32 {
     query!(
-        r#"
-        INSERT INTO chats (user_id_1, user_id_2) 
-        SELECT DISTINCT ?, user_id 
-        FROM users 
-        WHERE user_id <> ?
-        "#,
+        " INSERT INTO chats (user_id_1, user_id_2) VALUES (?, ?)",
         id,
-        id
+        other
     )
     .execute(conn)
     .await
-    .unwrap();
-
-    let friends = query!(
-        "SELECT user_id_2, chat_id FROM chats where user_id_1 = ?",
-        id
-    )
-    .fetch_all(conn)
-    .await
-    .unwrap();
-
-    Ok((
-        id as i32,
-        friends
-            .into_iter()
-            .map(|f| (f.user_id_2, f.chat_id))
-            .collect(),
-    ))
+    .unwrap()
+    .last_insert_id() as i32
 }
 
 pub async fn new_message(message: &Message, conn: &sqlx::MySqlPool) -> i32 {

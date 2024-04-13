@@ -32,10 +32,17 @@ pub fn read_chat(user: i32, sender: State<'_, Sender>, chats: State<'_, GlobalCh
 }
 
 #[tauri::command]
-pub fn getusers(sender: State<'_, Sender>) {
+pub fn get_all(sender: State<'_, Sender>) {
     let mut writer = sender.0.lock().unwrap();
     writer
-        .write_all(format!("GET;\n").as_bytes())
+        .write_all(format!("GET;ALL\n").as_bytes())
+        .expect("Failed to send message to the server");
+}
+#[tauri::command]
+pub fn get_friends(sender: State<'_, Sender>) {
+    let mut writer = sender.0.lock().unwrap();
+    writer
+        .write_all(format!("GET;FRD\n").as_bytes())
         .expect("Failed to send message to the server");
 }
 
@@ -86,5 +93,14 @@ pub fn update(
     let mut writer = sender.0.lock().unwrap();
     writer
         .write_all(format!("UPD;{user};{message_id};{content}\n").as_bytes())
+        .expect("Failed to send message to the server");
+}
+
+#[tauri::command]
+pub fn connect(id: i32, sender: State<'_, Sender>) {
+    println!("connecting");
+    let mut writer = sender.0.lock().unwrap();
+    writer
+        .write_all(format!("CNT;{id}\n").as_bytes())
         .expect("Failed to send message to the server");
 }

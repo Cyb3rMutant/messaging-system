@@ -53,12 +53,13 @@ impl Chats {
         message_id: i32,
         content: String,
         from_me: bool,
+        status: i32,
     ) -> Message {
         let message = Message {
             message_id,
             from_me,
             content,
-            status: 1,
+            status,
         };
         println!("{:?}", self.chats);
         match self.chats.get_mut(&user) {
@@ -67,6 +68,10 @@ impl Chats {
             }
             None => {
                 self.add_chat(user);
+                self.chats
+                    .get_mut(&user)
+                    .unwrap()
+                    .push_back(message.clone())
             }
         }
         message
@@ -89,7 +94,7 @@ impl Chats {
     }
 
     pub fn received_message(&mut self, user: i32, message_id: i32, content: String) -> Message {
-        self.add_message(user, message_id, content, false)
+        self.add_message(user, message_id, content, false, 1)
     }
 
     pub fn get_chat(&self, user: i32) -> &VecDeque<Message> {
@@ -104,7 +109,13 @@ impl Chats {
     pub fn load(&mut self, messages: &str) {
         let messages: Vec<ServerMessage> = serde_json::from_str(messages).unwrap();
         for m in messages.into_iter() {
-            self.add_message(m.chat_id, m.message_id, m.content, self.is_me(m.sender_id));
+            self.add_message(
+                m.chat_id,
+                m.message_id,
+                m.content,
+                self.is_me(m.sender_id),
+                m.status,
+            );
         }
     }
     pub fn my_message_read(&mut self, user: i32) {

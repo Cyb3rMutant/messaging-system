@@ -26,6 +26,13 @@
   overflow-y: auto;
 }
 
+.scrollable-list {
+  max-height: 200px;
+  /* Adjust the height as needed */
+  overflow-y: auto;
+  /* Enable vertical scroll bar if content exceeds container height */
+}
+
 #chat {
   flex: 1;
   padding: 20px;

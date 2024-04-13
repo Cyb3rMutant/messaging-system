@@ -142,8 +142,8 @@ impl Process {
                 Ok(Command::Testing_Clear)
             }
             "SND" => Command::send(content, self.id),
-            // "CNT" => Command::connect(content, id),
-            "GET" => Ok(Command::GET { id: self.id }),
+            "CNT" => Command::connect(content, self.id),
+            "GET" => Command::get(content, self.id),
             "STS" => Command::status(content, self.id),
             "DEL" => Command::delete(content, self.id),
             "UPD" => Command::update(content, self.id),

@@ -1,6 +1,6 @@
 use petgraph::{
     graph::{NodeIndex, UnGraph},
-    visit::EdgeRef,
+    visit::{EdgeRef, IntoNodeReferences},
     Graph, Undirected,
 };
 use tokio::{io::WriteHalf, net::TcpStream};
@@ -15,11 +15,16 @@ pub struct Container {
 }
 
 impl Container {
-    pub fn new(users: Vec<(i32, String, i32, String, i32)>) -> Self {
+    pub fn new(users: Vec<(i32, String, i32, String, i32)>, lonely: Vec<(i32, String)>) -> Self {
         let mut nodes = HashMap::new();
         let mut network = UnGraph::new_undirected();
-        println!("{users:?}");
-
+        println!("{users:?} {lonely:?}");
+        for (id, username) in lonely {
+            if !nodes.contains_key(&id) {
+                let n = network.add_node(Client::new(id, username));
+                nodes.insert(id, n);
+            }
+        }
         for (id_1, username_1, id_2, username_2, chat_id) in users {
             if !nodes.contains_key(&id_1) {
                 let n = network.add_node(Client::new(id_1, username_1));
@@ -39,7 +44,7 @@ impl Container {
         Container { nodes, network }
     }
 
-    pub fn new_user(&mut self, id: i32, name: String, friends: Vec<(i32, i32)>) {
+    pub fn new_user(&mut self, id: i32, name: String) {
         println!(
             "------- {:?} ------- {:?} ------- {}",
             self.nodes, self.network, id
@@ -49,10 +54,6 @@ impl Container {
             "------- {:?} ------- {:?} ------- {}",
             self.nodes, self.network, id
         );
-        for (u_id, chat_id) in friends {
-            let u_n = *self.nodes.get(&u_id).unwrap();
-            self.network.add_edge(n, u_n, chat_id);
-        }
         println!(
             "------- {:?} ------- {:?} ------- {}",
             self.nodes, self.network, id
@@ -94,13 +95,20 @@ impl Container {
     pub fn get_all(&self) -> String {
         let mut list = String::new();
 
-        for c in self.nodes.keys() {
-            list.push(';');
-            list += &c.to_string();
+        for c in self.network.node_references() {
+            let c = c.1;
+            list += &format!(";{};{}", c.id, c.name);
         }
         println!("{list:?}");
+        if list.is_empty() {
+            list += ";";
+        }
 
         list
+    }
+    pub async fn send_all(&mut self, id: i32) {
+        // self.send(name, &format!("USR{}\n", self.get_all())).await;
+        self.send(id, &format!("ALL{}\n", self.get_all())).await;
     }
     fn get_friends(&self, id: i32) -> String {
         let mut list = String::new();
@@ -119,23 +127,22 @@ impl Container {
         }
 
         println!("{list:?}");
+        if list.is_empty() {
+            list += ";";
+        }
         list
     }
 
-    pub async fn send_users(&mut self, id: i32) {
+    pub async fn send_friends(&mut self, id: i32) {
         // self.send(name, &format!("USR{}\n", self.get_all())).await;
-        self.send(id, &format!("USR{}\n", self.get_friends(id)))
+        self.send(id, &format!("FRD{}\n", self.get_friends(id)))
             .await;
     }
 
-    pub fn add_friends(&mut self, me: &str, other: &str) {
-        unimplemented!()
-        // if let Some(me) = self.clients.get_mut(me).unwrap().as_mut() {
-        //     me.add_friend(&other);
-        // };
-        // if let Some(other) = self.clients.get_mut(other).unwrap().as_mut() {
-        //     other.add_friend(&me);
-        // };
+    pub fn add_friends(&mut self, id: i32, other: i32, chat_id: i32) {
+        let n1 = *self.nodes.get(&id).unwrap();
+        let n2 = *self.nodes.get(&other).unwrap();
+        self.network.add_edge(n1, n2, chat_id);
     }
     pub fn get_other(&self, chat_id: i32, first_id: i32) -> i32 {
         let node = *self.nodes.get(&first_id).unwrap();

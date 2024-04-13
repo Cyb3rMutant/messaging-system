@@ -5,7 +5,7 @@ const { invoke } = window.__TAURI__.tauri;
 
 // testing
 function getChat() {
-  var button = document.querySelector('input[name="users"]:checked');
+  var button = document.querySelector('input[name="friends"]:checked');
   var user = parseInt(button.value);
   button.className = "";
   invoke("switch_chat", { user: user }).then(function (messages) {
@@ -31,7 +31,7 @@ function sendMessage() {
   var messageInput = document.getElementById("message");
   var messageText = messageInput.value;
   var user = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
 
   // Clear the input
@@ -50,7 +50,7 @@ listen("MSG", (message) => {
   let status = message.payload[1].status;
   let id = message.payload[0];
   var activeChat = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
 
   if (id == activeChat) {
@@ -69,7 +69,7 @@ listen("MID", (message) => {
   let status = message.payload[1].status;
   let id = message.payload[0];
   var activeChat = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
 
   if (id == activeChat) {
@@ -80,7 +80,7 @@ listen("MID", (message) => {
 // messages
 function setSeen() {
   var user = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
   console.log("setting seen for chat ", user);
   // Get the value from the input
@@ -91,7 +91,7 @@ listen("STS", (message) => {
   console.log(message);
   let id = message.payload;
   var activeChat = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
 
   if (id == activeChat) {
@@ -162,15 +162,22 @@ function displayMessage(message_id, from_me, content, status) {
 }
 
 // get users
-function getUsers() {
-  invoke("getusers");
+function getAll() {
+  invoke("get_all");
+}
+function getFriends() {
+  invoke("get_friends");
 }
 
-listen("USR", (message) => {
+listen("FRD", (message) => {
   var arr = message.payload;
   console.log(arr);
 
   var friendsList = document.getElementById("friends");
+  if (arr.length < 2) {
+    friendsList.innerHTML = "lonely lol";
+    return;
+  }
   friendsList.innerHTML = ""; // clear the list
 
   for (var i = 0; i < arr.length; i += 2) {
@@ -178,7 +185,7 @@ listen("USR", (message) => {
 
     var radioButton = document.createElement("input");
     radioButton.type = "radio";
-    radioButton.name = "users";
+    radioButton.name = "friends";
     radioButton.id = arr[i];
     radioButton.value = arr[i];
     radioButton.addEventListener("change", () => {
@@ -194,6 +201,49 @@ listen("USR", (message) => {
     listItem.appendChild(label);
 
     friendsList.appendChild(listItem);
+  }
+});
+listen("ALL", (message) => {
+  var arr = message.payload;
+  console.log(arr);
+
+  var friendsList = document.getElementById("all");
+  friendsList.innerHTML = ""; // clear the list
+  var names = document.querySelectorAll("#friends label");
+  for (var i = 0; i < arr.length; i += 2) {
+    console.log(arr[i], document.getElementById(arr[i]));
+    var skip = false;
+
+    for (var j = 0; j < names.length; j++) {
+      if (arr[i + 1] == names[j].textContent) {
+        skip = true;
+        break;
+      }
+    }
+    if (skip || arr[i] == userId) {
+      continue;
+    }
+    (function (index) {
+      // Create a new scope
+      var listItem = document.createElement("li");
+
+      var button = document.createElement("button");
+      button.id = "u" + arr[index];
+      button.value = arr[index + 1];
+      button.textContent = "add friend";
+      button.onclick = function () {
+        console.log(arr[index]); // Use the captured index
+        connect(parseInt(arr[index]));
+      };
+      var label = document.createElement("label");
+      label.htmlFor = button.id;
+      label.appendChild(document.createTextNode(arr[index + 1]));
+
+      listItem.appendChild(button);
+      listItem.appendChild(label);
+
+      friendsList.appendChild(listItem);
+    })(i); // Pass the current value of i to the IIFE
   }
 });
 
@@ -230,6 +280,8 @@ listen("LGN", (message) => {
     div.style.display = "none";
     var div = document.getElementById("yes");
     div.style.display = "block";
+    getFriends();
+    getAll();
   }
 });
 
@@ -255,7 +307,7 @@ function deleteMessage(message_id) {
   elem.getElementsByTagName("button")[0].remove();
 
   var activeChat = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
   invoke("delete", { user: activeChat, messageId: message_id });
 }
@@ -265,7 +317,7 @@ listen("DEL", (message) => {
   let message_id = message.payload[1];
   let id = message.payload[0];
   var activeChat = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
 
   if (id == activeChat) {
@@ -279,7 +331,7 @@ function editMessage() {
   var messageInput = document.getElementById("message");
   var messageText = messageInput.value;
   var user = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
 
   // Clear the input
@@ -298,7 +350,7 @@ function editMessage() {
   elem.getElementsByTagName("span")[0].textContent = messageText;
 
   var activeChat = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
   invoke("update", {
     user: activeChat,
@@ -313,7 +365,7 @@ listen("UPD", (message) => {
   let message_id = message.payload[1];
   let id = message.payload[0];
   var activeChat = parseInt(
-    document.querySelector('input[name="users"]:checked').value,
+    document.querySelector('input[name="friends"]:checked').value,
   );
 
   if (id == activeChat) {
@@ -321,4 +373,43 @@ listen("UPD", (message) => {
     elem.style.background = "purple";
     elem.getElementsByTagName("span")[0].textContent = content;
   }
+});
+
+function connect(id) {
+  console.log(id);
+  invoke("connect", { id: parseInt(id) });
+}
+
+listen("CNT", (message) => {
+  console.log(message);
+  let chat_id = message.payload[0];
+  let user_id = message.payload[1];
+
+  var listItem = document.createElement("li");
+  console.log("u" + user_id);
+  let name = document.getElementById("u" + user_id).value;
+
+  var radioButton = document.createElement("input");
+  radioButton.type = "radio";
+  radioButton.name = "friends";
+  radioButton.id = chat_id;
+  radioButton.value = chat_id;
+  radioButton.addEventListener("change", () => {
+    setSeen();
+    getChat();
+  });
+
+  var label = document.createElement("label");
+  label.htmlFor = radioButton.id;
+  label.appendChild(document.createTextNode(name));
+
+  listItem.appendChild(radioButton);
+  listItem.appendChild(label);
+
+  let l = document.getElementById("friends");
+  if (l.innerHTML.indexOf("lonely lol") !== -1) {
+    l.innerHTML = "";
+  }
+  l.appendChild(listItem);
+  document.getElementById("u" + user_id).parentElement.remove();
 });

@@ -4,7 +4,11 @@ use tokio::sync::Mutex;
 use sqlx::{MySql, Pool};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
-use crate::{commands::Command, container::Container, model};
+use crate::{
+    commands::{Command, GetTypes},
+    container::Container,
+    model,
+};
 
 #[derive(Debug)]
 pub struct Manager {
@@ -22,7 +26,10 @@ impl Manager {
                 .await
                 .unwrap();
 
-        let clients = Container::new(model::load_users(&pool).await);
+        let clients = Container::new(
+            model::load_chats(&pool).await,
+            model::load_lonely(&pool).await,
+        );
         Manager {
             rx: Mutex::new(rx),
             clients: Mutex::new(clients),
@@ -68,9 +75,9 @@ impl Manager {
                     // check db
                     let (name, password) = name_pass.trim().split_once(';').unwrap();
                     println!("{:?}{:?}\n", name, password);
-                    if let Ok((id, friends)) = model::register(&name, &password, &self.pool).await {
+                    if let Ok(id) = model::register(&name, &password, &self.pool).await {
                         let mut clients = self.clients.lock().await;
-                        clients.new_user(id, name.to_owned(), friends);
+                        clients.new_user(id, name.to_owned());
                         sender.send(true).unwrap();
                     } else {
                         sender.send(false).unwrap();
@@ -91,14 +98,23 @@ impl Manager {
                     let receiver = clients.get_other(message.chat_id, message.sender_id);
                     clients.send(receiver, &m).await;
                 }
-                Connect { me, other } => {
+                Connect { id, other } => {
                     let mut clients = self.clients.lock().await;
-                    clients.add_friends(&me, &other);
+                    let chat_id = model::connect(id, other, &self.pool).await;
+                    clients.add_friends(id, other, chat_id);
+                    clients.send(id, &format!("CNT;{chat_id};{other}\n")).await;
+                    clients.send(other, &format!("CNT;{chat_id};{id}\n")).await;
                 }
-                GET { id } => {
+                GET { t, id } => {
                     let mut clients = self.clients.lock().await;
-                    clients.send_users(id).await;
-                    println!("done");
+                    use GetTypes::*;
+                    match t {
+                        ALL => clients.send_all(id).await,
+                        // PENDING => clients.send_pending(id).await,
+                        FRIENDS => clients.send_friends(id).await,
+                        // BLOCKED => clients.send_blocked(id).await,
+                        _ => (),
+                    }
                 }
                 Remove { id } => {
                     let mut clients = self.clients.lock().await;

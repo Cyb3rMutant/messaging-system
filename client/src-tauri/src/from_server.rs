@@ -19,7 +19,9 @@ pub async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
         let (command, content) = buf.trim().split_once(';').unwrap();
         let _ = match command {
             "MSG" => receive(content, &app),
-            "USR" => users(content, &app),
+            "CNT" => connect(content, &app),
+            "FRD" => friends(content, &app),
+            "ALL" => all(content, &app),
             "LGN" => logged_in(content, &app),
             "STS" => set_seen(content, &app),
             "DEL" => delete(content, &app),
@@ -45,20 +47,45 @@ fn receive(content: &str, app: &AppHandle) {
 
     app.emit_all("MSG", (id, message)).unwrap();
 }
+fn connect(content: &str, app: &AppHandle) {
+    println!("{content}");
+    let (chat_id, user_id) = content.split_once(';').unwrap();
+    let chat_id: i32 = chat_id.parse().unwrap();
+    let user_id: i32 = user_id.parse().unwrap();
+    let state = app.state::<GlobalChats>();
+    let mut chats = state.0.write().unwrap();
+    chats.add_chat(chat_id);
 
-fn users<'a>(content: &'a str, app: &AppHandle) {
+    app.emit_all("CNT", (chat_id, user_id)).unwrap();
+}
+
+fn friends<'a>(content: &'a str, app: &AppHandle) {
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
     let users = content.split(";").collect::<Vec<&str>>();
-    let mut iter = users.iter();
-    while let Some(chat_id) = iter.next() {
-        if let Some(name) = iter.next() {
-            println!("{:?} {:?}", chat_id, name);
-            chats.add_chat(chat_id.parse().unwrap());
-        }
-    }
+    // let mut iter = users.iter();
+    // while let Some(chat_id) = iter.next() {
+    //     if let Some(name) = iter.next() {
+    //         println!("{:?} {:?}", chat_id, name);
+    //         chats.add_chat(chat_id.parse().unwrap());
+    //     }
+    // }
 
-    app.emit_all("USR", users).unwrap();
+    app.emit_all("FRD", users).unwrap();
+}
+fn all<'a>(content: &'a str, app: &AppHandle) {
+    let state = app.state::<GlobalChats>();
+    let mut chats = state.0.write().unwrap();
+    let users = content.split(";").collect::<Vec<&str>>();
+    // let mut iter = users.iter();
+    // while let Some(chat_id) = iter.next() {
+    //     if let Some(name) = iter.next() {
+    //         println!("{:?} {:?}", chat_id, name);
+    //         chats.add_chat(chat_id.parse().unwrap());
+    //     }
+    // }
+
+    app.emit_all("ALL", users).unwrap();
 }
 
 fn logged_in(content: &str, app: &AppHandle) {
@@ -100,7 +127,7 @@ fn update(content: &str, app: &AppHandle) {
     let content = args.get(2).unwrap();
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
-    let message = chats.update(id, message_id, content);
+    chats.update(id, message_id, content);
 
     app.emit_all("UPD", (id, message_id, content)).unwrap();
 }

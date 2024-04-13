@@ -3,6 +3,14 @@ use tokio::{io::WriteHalf, net::TcpStream, sync::oneshot};
 use crate::message::Message;
 
 #[derive(Debug)]
+pub enum GetTypes {
+    ALL,
+    PENDING,
+    FRIENDS,
+    BLOCKED,
+}
+
+#[derive(Debug)]
 pub enum Command {
     Add {
         name_pass: String,
@@ -14,8 +22,8 @@ pub enum Command {
         sender: oneshot::Sender<bool>,
     },
     Connect {
-        me: String,
-        other: String,
+        id: i32,
+        other: i32,
     },
     Send {
         message: Message,
@@ -24,6 +32,7 @@ pub enum Command {
         id: i32,
     },
     GET {
+        t: GetTypes,
         id: i32,
     },
     Status {
@@ -77,11 +86,33 @@ impl Command {
             message: Message::update(message_id, chat_id, id, content.to_string(), 4),
         })
     }
-    //     let other = other.trim_end_matches("\r\n").to_owned();
-    //
-    //     Ok(Command::Connect {
-    //         me: name,
-    //         other: other.to_owned(),
-    //     })
-    // }
+    pub fn get(content: &str, id: i32) -> Result<Command, ()> {
+        match content {
+            "ALL" => Ok(Command::GET {
+                t: GetTypes::ALL,
+                id,
+            }),
+            "FRD" => Ok(Command::GET {
+                t: GetTypes::FRIENDS,
+                id,
+            }),
+            "BLK" => Ok(Command::GET {
+                t: GetTypes::BLOCKED,
+                id,
+            }),
+            "PND" => Ok(Command::GET {
+                t: GetTypes::PENDING,
+                id,
+            }),
+            _ => {
+                println!("{content}");
+                Err(())
+            }
+        }
+    }
+    pub fn connect(content: &str, id: i32) -> Result<Command, ()> {
+        let other = content.parse().unwrap();
+
+        Ok(Command::Connect { id, other })
+    }
 }

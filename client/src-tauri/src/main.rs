@@ -33,7 +33,9 @@ fn main() {
         .manage(GlobalChats(Arc::new(RwLock::new(chats))))
         .invoke_handler(tauri::generate_handler![
             send,
-            getusers,
+            connect,
+            get_all,
+            get_friends,
             login,
             register,
             switch_chat,
