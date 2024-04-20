@@ -1,46 +1,38 @@
 // should try to change this back to std mutex
 use tokio::sync::Mutex;
 
-use sqlx::{MySql, Pool};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
 use crate::{
     commands::{Command, GetTypes},
     container::Container,
-    model,
+    model::Model,
 };
 
-#[derive(Debug)]
-pub struct Manager {
-    rx: Mutex<mpsc::Receiver<Command>>,
-    clients: Mutex<Container>,
-    pool: Pool<MySql>,
+pub struct Manager<T: AsyncWriteExt> {
+    rx: mpsc::Receiver<Command<T>>,
+    clients: Mutex<Container<T>>,
+    model: Model,
     testing: bool,
 }
 
-impl Manager {
-    pub async fn new(rx: mpsc::Receiver<Command>) -> Manager {
+impl<T: AsyncWriteExt> Manager<T> {
+    pub async fn new(rx: mpsc::Receiver<Command<T>>) -> Self {
         let db = "messaging";
-        let pool =
-            sqlx::mysql::MySqlPool::connect(format!("mysql://yazeed@localhost:3306/{db}").as_str())
-                .await
-                .unwrap();
+        let model = Model::new(db).await;
 
-        let clients = Container::new(
-            model::load_chats(&pool).await,
-            model::load_lonely(&pool).await,
-        );
+        let clients = Container::new(model.load_chats().await, model.load_lonely().await);
         Manager {
-            rx: Mutex::new(rx),
+            rx,
             clients: Mutex::new(clients),
-            pool,
+            model,
             testing: if db == "testing" { true } else { false },
         }
     }
-    pub async fn run(&self) {
+    pub async fn run(&mut self) {
         use Command::*;
 
-        while let Some(command) = self.rx.lock().await.recv().await {
+        while let Some(command) = self.rx.recv().await {
             match command {
                 Add {
                     name_pass,
@@ -50,23 +42,25 @@ impl Manager {
                     println!("start manager");
                     let (name, password) = name_pass.trim().split_once(';').unwrap();
                     println!("{:?}{:?}\n", name, password);
-                    if let Ok(id) = model::login(&name, &password, &self.pool).await {
+                    if let Ok(id) = self.model.login(&name, &password).await {
                         println!("in\n");
                         let mut clients = self.clients.lock().await;
-                        let messages = model::load_messages(id, &self.pool).await;
-                        let p_g = model::chats_p_g_B(id, &self.pool).await;
+                        let messages = self.model.load_messages(id).await;
+                        let p_g = self.model.chats_p_g_B(id).await;
                         match clients.login(id, writer, messages, p_g).await {
                             Ok(_) => {
                                 println!("{id}");
-                                sender.send(Ok(id)).unwrap();
+                                let _ = sender.send(Ok(id));
                             }
-                            Err(w) => sender.send(Err(w)).unwrap(),
+                            Err(w) => {
+                                let _ = sender.send(Err(w));
+                            }
                         };
                     } else {
                         println!("wrong\n");
                         let message = format!("ERR;PWD\n");
                         writer.write_all(message.as_bytes()).await.unwrap();
-                        sender.send(Err(writer)).unwrap();
+                        let _ = sender.send(Err(writer));
                     }
                 }
                 Register { name_pass, sender } => {
@@ -76,7 +70,7 @@ impl Manager {
                     // check db
                     let (name, password) = name_pass.trim().split_once(';').unwrap();
                     println!("{:?}{:?}\n", name, password);
-                    if let Ok(id) = model::register(&name, &password, &self.pool).await {
+                    if let Ok(id) = self.model.register(&name, &password).await {
                         let mut clients = self.clients.lock().await;
                         clients.new_user(id, name.to_owned());
                         sender.send(true).unwrap();
@@ -86,7 +80,7 @@ impl Manager {
                 }
                 Send { mut message } => {
                     let mut clients = self.clients.lock().await;
-                    message.message_id = model::new_message(&message, &self.pool).await;
+                    message.message_id = self.model.new_message(&message).await;
                     clients
                         .send(message.sender_id, &format!("MID;{}\n", message.message_id))
                         .await;
@@ -101,7 +95,7 @@ impl Manager {
                 }
                 Connect { id, other } => {
                     let mut clients = self.clients.lock().await;
-                    let (p, g) = model::connect(id, other, &self.pool).await;
+                    let (p, g) = self.model.connect(id, other).await;
                     clients.add_friends(id, other, p);
                     clients.send(id, &format!("CNT;{p};{other};{g}\n")).await;
                     clients.send(other, &format!("CNT;{p};{id};{g}\n")).await;
@@ -124,7 +118,7 @@ impl Manager {
                 Status { chat_id, id } => {
                     let mut clients = self.clients.lock().await;
                     let receiver = clients.get_other(chat_id, id);
-                    model::set_seen(chat_id, receiver, &self.pool).await;
+                    self.model.set_seen(chat_id, receiver).await;
                     clients.send(receiver, &format!("STS;{chat_id}\n")).await;
                 }
                 Delete {
@@ -134,7 +128,7 @@ impl Manager {
                 } => {
                     let mut clients = self.clients.lock().await;
                     let receiver = clients.get_other(chat_id, id);
-                    model::delete(message_id, &self.pool).await;
+                    self.model.delete(message_id).await;
                     clients
                         .send(receiver, &format!("DEL;{chat_id};{message_id}\n"))
                         .await;
@@ -142,7 +136,7 @@ impl Manager {
                 Update { message } => {
                     let mut clients = self.clients.lock().await;
                     let receiver = clients.get_other(message.chat_id, message.sender_id);
-                    model::update(&message, &self.pool).await;
+                    self.model.update(&message).await;
                     clients
                         .send(
                             receiver,
@@ -156,12 +150,12 @@ impl Manager {
                 A { chat_id, id, A } => {
                     let mut clients = self.clients.lock().await;
                     let receiver = clients.get_other(chat_id, id);
-                    model::set_ab(chat_id, id, A, &self.pool).await;
+                    self.model.set_ab(chat_id, id, A).await;
                     clients.send(receiver, &format!("B;{chat_id};{A}\n")).await;
                 }
                 Testing_Clear => {
                     if self.testing {
-                        model::clear(&self.pool).await;
+                        self.model.clear().await;
                     }
                 }
             };

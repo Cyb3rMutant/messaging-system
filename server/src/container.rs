@@ -3,18 +3,17 @@ use petgraph::{
     visit::{EdgeRef, IntoNodeReferences},
     Graph, Undirected,
 };
-use tokio::{io::WriteHalf, net::TcpStream};
+use tokio::io::{AsyncWriteExt, WriteHalf};
 
 use crate::{client::Client, message::Message};
 use std::collections::HashMap;
 
-#[derive(Debug)]
-pub struct Container {
+pub struct Container<T: AsyncWriteExt> {
     nodes: HashMap<i32, NodeIndex>,
-    network: Graph<Client, i32, Undirected>,
+    network: Graph<Client<T>, i32, Undirected>,
 }
 
-impl Container {
+impl<T: AsyncWriteExt> Container<T> {
     pub fn new(users: Vec<(i32, String, i32, String, i32)>, lonely: Vec<(i32, String)>) -> Self {
         let mut nodes = HashMap::new();
         let mut network = UnGraph::new_undirected();
@@ -45,19 +44,7 @@ impl Container {
     }
 
     pub fn new_user(&mut self, id: i32, name: String) {
-        println!(
-            "------- {:?} ------- {:?} ------- {}",
-            self.nodes, self.network, id
-        );
         let n = self.network.add_node(Client::new(id, name));
-        println!(
-            "------- {:?} ------- {:?} ------- {}",
-            self.nodes, self.network, id
-        );
-        println!(
-            "------- {:?} ------- {:?} ------- {}",
-            self.nodes, self.network, id
-        );
 
         self.nodes.insert(id, n);
     }
@@ -70,11 +57,10 @@ impl Container {
     pub async fn login(
         &mut self,
         id: i32,
-        writer: WriteHalf<TcpStream>,
+        writer: WriteHalf<T>,
         messages: Vec<Message>,
         p_g_b: Vec<(i32, i32, i32)>,
-    ) -> Result<(), WriteHalf<TcpStream>> {
-        println!("{:?} {:?} {}", self.nodes, self.network, id);
+    ) -> Result<(), WriteHalf<T>> {
         let messages = serde_json::to_string(&messages).unwrap();
         let p_g = serde_json::to_string(&p_g_b).unwrap();
         let message = format!("LGN;{};{};{}\n", id, p_g, messages);

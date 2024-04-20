@@ -1,8 +1,10 @@
-use tokio::{io::WriteHalf, net::TcpStream, sync::oneshot};
+use tokio::{
+    io::{AsyncWriteExt, WriteHalf},
+    sync::oneshot,
+};
 
 use crate::message::Message;
 
-#[derive(Debug)]
 pub enum GetTypes {
     ALL,
     PENDING,
@@ -10,12 +12,11 @@ pub enum GetTypes {
     BLOCKED,
 }
 
-#[derive(Debug)]
-pub enum Command {
+pub enum Command<T: AsyncWriteExt> {
     Add {
         name_pass: String,
-        writer: WriteHalf<TcpStream>,
-        sender: oneshot::Sender<Result<i32, WriteHalf<TcpStream>>>,
+        writer: WriteHalf<T>,
+        sender: oneshot::Sender<Result<i32, WriteHalf<T>>>,
     },
     Register {
         name_pass: String,
@@ -56,8 +57,8 @@ pub enum Command {
     Testing_Clear,
 }
 
-impl Command {
-    pub fn send(content: &str, id: i32) -> Result<Command, ()> {
+impl<T: AsyncWriteExt> Command<T> {
+    pub fn send(content: &str, id: i32) -> Result<Command<T>, ()> {
         match content.split_once(';') {
             Some((chat_id, message)) => Ok(Command::Send {
                 message: Message::new(chat_id.parse().unwrap(), id, message.to_owned(), 1),
@@ -65,14 +66,14 @@ impl Command {
             _ => Err(()),
         }
     }
-    pub fn status(content: &str, id: i32) -> Result<Command, ()> {
+    pub fn status(content: &str, id: i32) -> Result<Command<T>, ()> {
         Ok(Command::Status {
             chat_id: content.parse().unwrap(),
             id,
         })
     }
 
-    pub fn delete(content: &str, id: i32) -> Result<Command, ()> {
+    pub fn delete(content: &str, id: i32) -> Result<Command<T>, ()> {
         let (chat_id, message_id) = content.split_once(';').unwrap();
         println!("{chat_id:?} {message_id:?}");
         Ok(Command::Delete {
@@ -81,8 +82,7 @@ impl Command {
             message_id: message_id.parse().unwrap(),
         })
     }
-    // pub fn connect(other: &str, name: String) -> Result<Command, String> {
-    pub fn update(content: &str, id: i32) -> Result<Command, ()> {
+    pub fn update(content: &str, id: i32) -> Result<Command<T>, ()> {
         let args: Vec<&str> = content.split(';').collect();
         let chat_id = args.get(0).unwrap().parse().unwrap();
         let message_id = args.get(1).unwrap().parse().unwrap();
@@ -91,7 +91,7 @@ impl Command {
             message: Message::update(message_id, chat_id, id, content.to_string(), 4),
         })
     }
-    pub fn get(content: &str, id: i32) -> Result<Command, ()> {
+    pub fn get(content: &str, id: i32) -> Result<Command<T>, ()> {
         match content {
             "ALL" => Ok(Command::GET {
                 t: GetTypes::ALL,
@@ -115,12 +115,12 @@ impl Command {
             }
         }
     }
-    pub fn connect(content: &str, id: i32) -> Result<Command, ()> {
+    pub fn connect(content: &str, id: i32) -> Result<Command<T>, ()> {
         let other = content.parse().unwrap();
 
         Ok(Command::Connect { id, other })
     }
-    pub fn a(content: &str, id: i32) -> Result<Command, ()> {
+    pub fn a(content: &str, id: i32) -> Result<Command<T>, ()> {
         let (chat_id, a) = content.split_once(';').unwrap();
         let chat_id: i32 = chat_id.parse().unwrap();
         let a: i32 = a.parse().unwrap();

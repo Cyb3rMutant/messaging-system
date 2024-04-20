@@ -1,32 +1,22 @@
-use std::sync::Arc;
-
 use tokio::{
-    io::{split, AsyncBufReadExt, AsyncWriteExt, BufReader, ReadHalf},
-    net::TcpStream,
+    io::{split, AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, ReadHalf},
     sync::{mpsc, oneshot},
 };
 
-use crate::{commands::Command, manager::Manager};
+use crate::commands::Command;
 
-#[derive(Debug)]
-pub struct Process {
+pub struct Process<T: AsyncReadExt + AsyncWriteExt> {
     id: i32,
-    reader: BufReader<ReadHalf<TcpStream>>,
-    tx: mpsc::Sender<Command>,
-    manager: Arc<Manager>,
+    reader: BufReader<ReadHalf<T>>,
+    tx: mpsc::Sender<Command<T>>,
 }
 
-impl Process {
-    pub async fn run(stream: TcpStream, tx: mpsc::Sender<Command>, manager: Arc<Manager>) {
+impl<T: AsyncReadExt + AsyncWriteExt> Process<T> {
+    pub async fn run(stream: T, tx: mpsc::Sender<Command<T>>) {
         use Command::*;
         let (reader, mut writer) = split(stream);
         let reader = BufReader::new(reader);
-        let mut p = Process {
-            id: 0,
-            reader,
-            tx,
-            manager,
-        };
+        let mut p = Process { id: 0, reader, tx };
 
         p.id = loop {
             let mut buf = String::new();
@@ -104,8 +94,6 @@ impl Process {
             println!("looping - {}", self.id);
             let message = self.get_command().await;
 
-            println!("{message:?}");
-
             match message {
                 Ok(message) => self.tx.send(message).await.unwrap(),
                 Err(e) => {
@@ -119,7 +107,7 @@ impl Process {
         println!("{} disconnected", self.id);
         self.tx.send(Command::Remove { id: self.id }).await.unwrap();
     }
-    async fn get_command(&mut self) -> Result<Command, ()> {
+    async fn get_command(&mut self) -> Result<Command<T>, ()> {
         let mut buf = String::new();
         match self.reader.read_line(&mut buf).await {
             Ok(0) => {

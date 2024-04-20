@@ -1,24 +1,20 @@
-use tokio::{
-    io::{AsyncWriteExt, WriteHalf},
-    net::TcpStream,
-};
+use tokio::io::{AsyncWriteExt, WriteHalf};
 
-#[derive(Debug)]
-pub struct Client {
+pub struct Client<T: AsyncWriteExt> {
     pub id: i32,
     pub name: String,
-    writer: Option<WriteHalf<TcpStream>>,
+    writer: Option<WriteHalf<T>>,
 }
 
-impl Client {
-    pub fn new(id: i32, name: String) -> Client {
+impl<T: AsyncWriteExt> Client<T> {
+    pub fn new(id: i32, name: String) -> Self {
         Client {
             id,
             name,
             writer: None,
         }
     }
-    pub fn login(&mut self, writer: WriteHalf<TcpStream>) -> Result<(), WriteHalf<TcpStream>> {
+    pub fn login(&mut self, writer: WriteHalf<T>) -> Result<(), WriteHalf<T>> {
         if self.writer.is_some() {
             Err(writer)
         } else {
