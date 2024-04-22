@@ -148,6 +148,7 @@ impl<T: AsyncWriteExt> Manager<T> {
                         .await;
                 }
                 A { chat_id, id, A } => {
+                    println!("A - {chat_id}, {A}");
                     let mut clients = self.clients.lock().await;
                     let receiver = clients.get_other(chat_id, id);
                     self.model.set_ab(chat_id, id, A).await;

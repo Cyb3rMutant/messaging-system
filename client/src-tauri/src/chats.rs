@@ -96,13 +96,16 @@ impl Chats {
         message
     }
     pub fn pend_message(&mut self, user: i32, content: String) {
+        println!("p 1 ");
         let message = Message {
             message_id: 0,
             from_me: true,
             content,
             status: 1,
         };
+        println!("p 2 ");
         self.pending_messages.push_back((user, message));
+        println!("p 3 ");
     }
 
     pub fn sent_message(&mut self, message_id: i32) -> (i32, Message) {

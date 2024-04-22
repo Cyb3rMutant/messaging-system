@@ -433,5 +433,5 @@ listen("CNT", (message) => {
   }
   l.appendChild(listItem);
   document.getElementById("u" + user_id).parentElement.remove();
-  invoke("send_a", { user: chat_id, a: A });
+  invoke("send_a", { user: chat_id, a: a });
 });

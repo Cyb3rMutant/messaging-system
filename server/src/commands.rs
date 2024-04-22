@@ -121,6 +121,7 @@ impl<T: AsyncWriteExt> Command<T> {
         Ok(Command::Connect { id, other })
     }
     pub fn a(content: &str, id: i32) -> Result<Command<T>, ()> {
+        println!("A {content}");
         let (chat_id, a) = content.split_once(';').unwrap();
         let chat_id: i32 = chat_id.parse().unwrap();
         let a: i32 = a.parse().unwrap();

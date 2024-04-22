@@ -116,7 +116,7 @@ impl Model {
         .await
         .unwrap()
         .into_iter()
-        .map(|c| (c.p, c.g.unwrap_or(0) as i32, c.b.unwrap_or(0)))
+        .map(|c| (c.p, c.g.unwrap_or(1) as i32, c.b.unwrap_or(1)))
         .collect()
     }
 
@@ -166,7 +166,7 @@ impl Model {
             .await
             .unwrap()
             .g
-            .unwrap() as i32;
+            .unwrap_or(1) as i32;
         let p = query!(
             " INSERT INTO chats (user_id_1, user_id_2) VALUES (?, ?)",
             id,

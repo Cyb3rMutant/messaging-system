@@ -16,8 +16,10 @@ pub struct Sender(pub Arc<Mutex<TcpStream>>);
 #[tauri::command]
 pub fn send(user: i32, message: String, sender: State<'_, Sender>, chats: State<'_, GlobalChats>) {
     let mut writer = sender.0.lock().unwrap();
+    println!("in sending 1 ");
 
-    let c = chats.0.write().unwrap();
+    let mut c = chats.0.write().unwrap();
+    println!("in sending 2 ");
     let s_message = xor_encrypt(
         &message,
         modular_pow(c.get_b(user) as u64, c.get_a() as u64, user as u64) as i32,
@@ -27,8 +29,10 @@ pub fn send(user: i32, message: String, sender: State<'_, Sender>, chats: State<
     writer
         .write_all(format!("SND;{};{}\n", user, s_message).as_bytes())
         .expect("Failed to send message to the server");
+    println!("in sending 3 ");
 
-    chats.0.write().unwrap().pend_message(user, message);
+    c.pend_message(user, message);
+    println!("in sending 4 ");
 }
 
 #[tauri::command]
@@ -130,6 +134,7 @@ pub fn connect(id: i32, sender: State<'_, Sender>) {
 #[tauri::command]
 pub fn send_a(user: i32, a: i32, sender: State<'_, Sender>) {
     let mut writer = sender.0.lock().unwrap();
+    println!("{a}");
     writer
         .write_all(format!("A;{user};{a}\n").as_bytes())
         .expect("Failed to send message to the server");

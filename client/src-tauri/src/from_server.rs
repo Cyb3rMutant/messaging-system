@@ -149,12 +149,18 @@ fn update(content: &str, app: &AppHandle) {
 }
 
 fn message_sent(content: &str, app: &AppHandle) {
+    println!("message sent 1 ");
     let message_id: i32 = content.parse().unwrap();
+    println!("message sent 2 ");
     let state = app.state::<GlobalChats>();
+    println!("message sent 3 ");
     let mut chats = state.0.write().unwrap();
+    println!("message sent 4 ");
     let (user, message) = chats.sent_message(message_id);
+    println!("message sent 5 ");
 
     app.emit_all("MID", (user, message)).unwrap();
+    println!("message sent 6 ");
 }
 
 fn b(content: &str, app: &AppHandle) {
