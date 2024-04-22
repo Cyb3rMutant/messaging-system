@@ -56,6 +56,33 @@
   text-align: right;
 }
 
+#search {
+  width: 50%;
+  display: block;
+  padding: 10px;
+  margin: 10px;
+}
+
+#search-button {
+  width: 20%;
+  display: block;
+  padding: 10px;
+  margin: 10px;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+}
+
+#private-button {
+  width: 20%;
+  display: block;
+  padding: 10px;
+  margin: 10px;
+  background-color: green;
+  color: white;
+  cursor: pointer;
+}
+
 .footer {
   position: fixed;
   bottom: 0;
@@ -70,7 +97,8 @@
 }
 
 #send-button {
-  width: 65%;
+  float: left;
+  width: 60%;
   display: block;
   padding: 10px;
   margin: 10px;
@@ -80,7 +108,8 @@
 }
 
 #edit-button {
-  width: 25%;
+  float: right;
+  width: 30%;
   display: block;
   padding: 10px;
   margin: 10px;

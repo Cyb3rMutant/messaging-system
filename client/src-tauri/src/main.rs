@@ -39,6 +39,7 @@ fn main() {
             login,
             register,
             switch_chat,
+            search,
             read_chat,
             delete,
             update,

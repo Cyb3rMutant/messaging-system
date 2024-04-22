@@ -1,4 +1,7 @@
 let userId = 0;
+let search_arr = [];
+let search_idx = 0;
+let private = 0;
 
 const { listen } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.tauri;
@@ -97,6 +100,9 @@ function setSeen() {
   }
   console.log("setting seen for chat ", user);
   // Get the value from the input
+  if (private) {
+    return;
+  }
   invoke("read_chat", { user: user });
 }
 
@@ -397,6 +403,9 @@ listen("UPD", (message) => {
 
 function connect(id) {
   console.log(id);
+  if (private) {
+    return;
+  }
   invoke("connect", { id: parseInt(id) });
 }
 
@@ -435,3 +444,49 @@ listen("CNT", (message) => {
   document.getElementById("u" + user_id).parentElement.remove();
   invoke("send_a", { user: chat_id, a: a });
 });
+
+function search() {
+  // Get the value from the input
+  var messageInput = document.getElementById("search");
+  var messageText = messageInput.value;
+  if (messageText.length == 0) {
+    next_search();
+    return;
+  }
+  var user = getActiveChat();
+  console.log(user);
+  if (user < 0) {
+    return;
+  }
+  // Clear the input
+  messageInput.value = "";
+
+  // displayMessage(0, true, messageText, 1);
+
+  invoke("search", { user: user, message: messageText }).then(
+    function (messages) {
+      console.log(messages, typeof messages);
+      search_arr = messages;
+      search_idx = 0;
+      next_search();
+    },
+  );
+}
+function next_search() {
+  console.log(search_idx);
+  document.getElementById("m" + search_arr[search_idx]).scrollIntoView();
+  if (++search_idx >= search_arr.length) {
+    search_idx = 0;
+  }
+}
+function set_private() {
+  let elem = document.getElementById("private-button");
+  private ^= 1;
+  if (private) {
+    elem.textContent = "private on";
+    elem.style.background = "red";
+  } else {
+    elem.style.background = "green";
+    elem.textContent = "private off";
+  }
+}

@@ -28,6 +28,7 @@ pub struct Chats {
     chats: HashMap<i32, (VecDeque<Message>, i32, i32)>,
     pending_messages: VecDeque<(i32, Message)>,
     a: i32,
+    private: bool,
 }
 
 impl Chats {
@@ -37,6 +38,7 @@ impl Chats {
             chats: HashMap::new(),
             pending_messages: VecDeque::new(),
             a: 0,
+            private: false,
         }
     }
 
