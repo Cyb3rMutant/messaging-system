@@ -131,6 +131,8 @@ impl<T: AsyncReadExt + AsyncWriteExt> Process<T> {
             }
             "SND" => Command::send(content, self.id),
             "CNT" => Command::connect(content, self.id),
+            "BLK" => Command::block(content, self.id),
+            "UBK" => Command::unblock(content, self.id),
             "GET" => Command::get(content, self.id),
             "STS" => Command::status(content, self.id),
             "DEL" => Command::delete(content, self.id),

@@ -1,7 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::hashing::{modular_pow, xor_encrypt};
 
@@ -28,7 +27,6 @@ pub struct Chats {
     chats: HashMap<i32, (VecDeque<Message>, i32, i32)>,
     pending_messages: VecDeque<(i32, Message)>,
     a: i32,
-    private: bool,
 }
 
 impl Chats {
@@ -38,7 +36,6 @@ impl Chats {
             chats: HashMap::new(),
             pending_messages: VecDeque::new(),
             a: 0,
-            private: false,
         }
     }
 
@@ -81,16 +78,9 @@ impl Chats {
         };
         println!("{:?}", self.chats);
         match self.chats.get_mut(&user) {
-            Some((chat, g, b)) => {
+            Some((chat, _g, _b)) => {
                 chat.push_back(message.clone());
             }
-            // None => {
-            //     self.add_chat(user);
-            //     self.chats
-            //         .get_mut(&user)
-            //         .unwrap()
-            //         .push_back(message.clone())
-            // }
             None => {
                 println!("im smart");
             }

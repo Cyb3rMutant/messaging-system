@@ -44,6 +44,8 @@ fn main() {
             delete,
             update,
             send_a,
+            block,
+            unblock
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

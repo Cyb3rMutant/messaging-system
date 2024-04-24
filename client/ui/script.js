@@ -3,7 +3,7 @@ let search_arr = [];
 let search_idx = 0;
 let private = 0;
 
-const { listen } = window.__TAURI__.event;
+const { listen, emit } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.tauri;
 
 function getActiveChat() {
@@ -187,6 +187,9 @@ function getAll() {
 function getFriends() {
   invoke("get_friends");
 }
+function getBlocked() {
+  invoke("get_blocked");
+}
 
 listen("FRD", (message) => {
   var arr = message.payload;
@@ -222,43 +225,69 @@ listen("FRD", (message) => {
     friendsList.appendChild(listItem);
   }
 });
-listen("ALL", (message) => {
+listen("BKS", (message) => {
   var arr = message.payload;
   console.log(arr);
 
-  var friendsList = document.getElementById("all");
-  friendsList.innerHTML = ""; // clear the list
-  var names = document.querySelectorAll("#friends label");
+  var friendsList = document.getElementById("blocked");
   for (var i = 0; i < arr.length; i += 2) {
     console.log(arr[i], document.getElementById(arr[i]));
-    var skip = false;
-
-    for (var j = 0; j < names.length; j++) {
-      if (arr[i + 1] == names[j].textContent) {
-        skip = true;
-        break;
-      }
-    }
-    if (skip || arr[i] == userId) {
-      continue;
-    }
     (function (index) {
       // Create a new scope
       var listItem = document.createElement("li");
 
       var button = document.createElement("button");
-      button.id = "u" + arr[index];
+      button.id = "ub" + arr[index];
       button.value = arr[index + 1];
-      button.textContent = "add friend";
+      button.textContent = "unblock";
       button.onclick = function () {
         console.log(arr[index]); // Use the captured index
-        connect(parseInt(arr[index]));
+        unblock(parseInt(arr[index]));
       };
       var label = document.createElement("label");
       label.htmlFor = button.id;
       label.appendChild(document.createTextNode(arr[index + 1]));
 
       listItem.appendChild(button);
+      listItem.appendChild(label);
+
+      friendsList.appendChild(listItem);
+    })(i); // Pass the current value of i to the IIFE
+  }
+});
+listen("ALL", (message) => {
+  var arr = message.payload;
+  console.log(arr);
+
+  var friendsList = document.getElementById("all");
+  for (var i = 0; i < arr.length; i += 2) {
+    console.log(arr[i], document.getElementById(arr[i]));
+    (function (index) {
+      // Create a new scope
+      var listItem = document.createElement("li");
+
+      var friend_button = document.createElement("button");
+      friend_button.id = "u" + arr[index];
+      friend_button.value = arr[index + 1];
+      friend_button.textContent = "add friend";
+      friend_button.onclick = function () {
+        console.log(arr[index]); // Use the captured index
+        connect(parseInt(arr[index]));
+      };
+      listItem.appendChild(friend_button);
+      var block_button = document.createElement("button");
+      block_button.id = "b" + arr[index];
+      block_button.value = arr[index + 1];
+      block_button.textContent = "block";
+      block_button.onclick = function () {
+        console.log(arr[index]); // Use the captured index
+        block(parseInt(arr[index]));
+      };
+      listItem.appendChild(block_button);
+      var label = document.createElement("label");
+      // label.htmlFor = button.id;
+      label.appendChild(document.createTextNode(arr[index + 1]));
+
       listItem.appendChild(label);
 
       friendsList.appendChild(listItem);
@@ -408,6 +437,26 @@ function connect(id) {
   }
   invoke("connect", { id: parseInt(id) });
 }
+function block(id) {
+  console.log(id);
+  if (private) {
+    return;
+  }
+  let elem = document.getElementById("b" + id);
+  emit("BKS", [id, elem.value]);
+  elem.parentElement.remove();
+  invoke("block", { id: parseInt(id) });
+}
+function unblock(id) {
+  console.log(id);
+  if (private) {
+    return;
+  }
+  let elem = document.getElementById("ub" + id);
+  emit("ALL", [id, elem.value]);
+  elem.parentElement.remove();
+  invoke("unblock", { id: parseInt(id) });
+}
 
 listen("CNT", (message) => {
   console.log(message);
@@ -443,6 +492,21 @@ listen("CNT", (message) => {
   l.appendChild(listItem);
   document.getElementById("u" + user_id).parentElement.remove();
   invoke("send_a", { user: chat_id, a: a });
+});
+listen("BLK", (message) => {
+  console.log(message, message.payload);
+  let user_id = message.payload;
+  console.log(user_id);
+  try {
+    document.getElementById("u" + user_id).parentElement.remove();
+  } catch (error) {
+    console.log(error);
+  }
+  try {
+    document.getElementById(user_id).parentElement.remove();
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 function search() {

@@ -7,7 +7,7 @@ use std::{
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    chats::{Chats, Message},
+    chats::Chats,
     hashing::{modular_pow, xor_encrypt},
 };
 
@@ -29,6 +29,7 @@ pub async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
             "STS" => set_seen(content, &app),
             "DEL" => delete(content, &app),
             "UPD" => update(content, &app),
+            "BLK" => block(content, &app),
             "MID" => message_sent(content, &app),
             "B" => b(content, &app),
             "REG" => app.emit_all("REG", content).unwrap(),
@@ -71,30 +72,13 @@ fn connect(content: &str, app: &AppHandle) {
 }
 
 fn friends<'a>(content: &'a str, app: &AppHandle) {
-    let state = app.state::<GlobalChats>();
-    let mut chats = state.0.write().unwrap();
     let users = content.split(";").collect::<Vec<&str>>();
-    // let mut iter = users.iter();
-    // while let Some(chat_id) = iter.next() {
-    //     if let Some(name) = iter.next() {
-    //         println!("{:?} {:?}", chat_id, name);
-    //         chats.add_chat(chat_id.parse().unwrap());
-    //     }
-    // }
 
     app.emit_all("FRD", users).unwrap();
 }
 fn all<'a>(content: &'a str, app: &AppHandle) {
-    let state = app.state::<GlobalChats>();
-    let mut chats = state.0.write().unwrap();
+    println!("{content}");
     let users = content.split(";").collect::<Vec<&str>>();
-    // let mut iter = users.iter();
-    // while let Some(chat_id) = iter.next() {
-    //     if let Some(name) = iter.next() {
-    //         println!("{:?} {:?}", chat_id, name);
-    //         chats.add_chat(chat_id.parse().unwrap());
-    //     }
-    // }
 
     app.emit_all("ALL", users).unwrap();
 }
@@ -146,6 +130,12 @@ fn update(content: &str, app: &AppHandle) {
     chats.update(id, message_id, &content);
 
     app.emit_all("UPD", (id, message_id, content)).unwrap();
+}
+fn block(content: &str, app: &AppHandle) {
+    println!("got blocked from {content}");
+    let id: i32 = content.parse().unwrap();
+
+    app.emit_all("BLK", id).unwrap();
 }
 
 fn message_sent(content: &str, app: &AppHandle) {

@@ -138,6 +138,70 @@ impl Model {
             Err("invalid password".to_owned())
         }
     }
+    pub async fn all(&self, id: i32) -> String {
+        query!(
+            r#"
+            SELECT
+              u.user_id,
+              u.username
+            FROM
+              users u
+              LEFT JOIN chats c ON (
+                u.user_id = c.user_id_1
+                OR u.user_id = c.user_id_2
+              )
+              AND (
+                c.user_id_1 = ?
+                OR c.user_id_2 = ?
+              )
+              LEFT JOIN blocked b ON (
+                u.user_id = b.user_id
+                OR u.user_id = b.blocked_user_id
+              )
+              AND (
+                b.user_id = ?
+                OR b.blocked_user_id = ?
+              )
+            WHERE
+              c.chat_id IS NULL
+              AND b.id IS NULL
+              AND u.user_id <> ?;
+            "#,
+            id,
+            id,
+            id,
+            id,
+            id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .unwrap()
+        .iter()
+        .map(|item| format!("{};{}", item.user_id, item.username))
+        .collect::<Vec<String>>()
+        .join(";")
+    }
+    pub async fn blocked(&self, id: i32) -> String {
+        query!(
+            r#"
+            SELECT
+              u.*
+            FROM
+              users u
+              JOIN blocked b ON u.user_id = b.blocked_user_id
+            WHERE
+              b.user_id = ?;
+            "#,
+            id,
+        )
+        .fetch_all(&self.pool)
+        .await
+        .unwrap()
+        .iter()
+        .map(|item| format!("{};{}", item.user_id, item.username))
+        .collect::<Vec<String>>()
+        .join(";")
+    }
 
     pub async fn register(&self, name: &str, password: &str) -> Result<i32, ()> {
         match query!("SELECT * FROM users WHERE username = ?", &name)
@@ -178,6 +242,26 @@ impl Model {
         .last_insert_id() as i32;
 
         (p, g)
+    }
+    pub async fn block(&self, id: i32, other: i32) {
+        query!(
+            "INSERT INTO blocked (user_id, blocked_user_id) VALUES (?, ?)",
+            id,
+            other
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
+    }
+    pub async fn unblock(&self, id: i32, other: i32) {
+        query!(
+            "DELETE FROM blocked WHERE user_id = ? AND blocked_user_id = ?;",
+            id,
+            other
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
     }
 
     pub async fn new_message(&self, message: &Message) -> i32 {

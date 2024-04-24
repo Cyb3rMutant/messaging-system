@@ -79,24 +79,6 @@ impl<T: AsyncWriteExt> Container<T> {
         self.network[node].loguot();
     }
 
-    pub fn get_all(&self) -> String {
-        let mut list = String::new();
-
-        for c in self.network.node_references() {
-            let c = c.1;
-            list += &format!(";{};{}", c.id, c.name);
-        }
-        println!("{list:?}");
-        if list.is_empty() {
-            list += ";";
-        }
-
-        list
-    }
-    pub async fn send_all(&mut self, id: i32) {
-        // self.send(name, &format!("USR{}\n", self.get_all())).await;
-        self.send(id, &format!("ALL{}\n", self.get_all())).await;
-    }
     fn get_friends(&self, id: i32) -> String {
         let mut list = String::new();
 
@@ -120,6 +102,10 @@ impl<T: AsyncWriteExt> Container<T> {
         // self.send(name, &format!("USR{}\n", self.get_all())).await;
         self.send(id, &format!("FRD{}\n", self.get_friends(id)))
             .await;
+    }
+    pub async fn get_name(&self, id: i32) -> String {
+        let node = *self.nodes.get(&id).unwrap();
+        self.network[node].name.clone()
     }
 
     pub fn add_friends(&mut self, id: i32, other: i32, chat_id: i32) {

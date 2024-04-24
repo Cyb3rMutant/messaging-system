@@ -100,14 +100,32 @@ impl<T: AsyncWriteExt> Manager<T> {
                     clients.send(id, &format!("CNT;{p};{other};{g}\n")).await;
                     clients.send(other, &format!("CNT;{p};{id};{g}\n")).await;
                 }
+                Block { id, other } => {
+                    let mut clients = self.clients.lock().await;
+                    self.model.block(id, other).await;
+                    clients.send(other, &format!("BLK;{id}\n")).await;
+                }
+                Unblock { id, other } => {
+                    let mut clients = self.clients.lock().await;
+                    self.model.unblock(id, other).await;
+                    let name = clients.get_name(id).await;
+                    clients.send(other, &format!("ALL;{id};{name}\n")).await;
+                }
                 GET { t, id } => {
                     let mut clients = self.clients.lock().await;
                     use GetTypes::*;
                     match t {
-                        ALL => clients.send_all(id).await,
-                        // PENDING => clients.send_pending(id).await,
+                        ALL => {
+                            clients
+                                .send(id, &format!("ALL;{}\n", self.model.all(id).await))
+                                .await
+                        }
                         FRIENDS => clients.send_friends(id).await,
-                        // BLOCKED => clients.send_blocked(id).await,
+                        BLOCKED => {
+                            clients
+                                .send(id, &format!("BKS;{}\n", self.model.blocked(id).await))
+                                .await
+                        }
                         _ => (),
                     }
                 }

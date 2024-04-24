@@ -130,6 +130,21 @@ pub fn connect(id: i32, sender: State<'_, Sender>) {
         .write_all(format!("CNT;{id}\n").as_bytes())
         .expect("Failed to send message to the server");
 }
+#[tauri::command]
+pub fn block(id: i32, sender: State<'_, Sender>) {
+    let mut writer = sender.0.lock().unwrap();
+    println!("blocking {id}");
+    writer
+        .write_all(format!("BLK;{id}\n").as_bytes())
+        .expect("Failed to send message to the server");
+}
+#[tauri::command]
+pub fn unblock(id: i32, sender: State<'_, Sender>) {
+    let mut writer = sender.0.lock().unwrap();
+    writer
+        .write_all(format!("UBK;{id}\n").as_bytes())
+        .expect("Failed to send message to the server");
+}
 
 #[tauri::command]
 pub fn send_a(user: i32, a: i32, sender: State<'_, Sender>) {

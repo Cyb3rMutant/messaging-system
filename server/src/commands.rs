@@ -26,6 +26,14 @@ pub enum Command<T: AsyncWriteExt> {
         id: i32,
         other: i32,
     },
+    Block {
+        id: i32,
+        other: i32,
+    },
+    Unblock {
+        id: i32,
+        other: i32,
+    },
     Send {
         message: Message,
     },
@@ -119,6 +127,16 @@ impl<T: AsyncWriteExt> Command<T> {
         let other = content.parse().unwrap();
 
         Ok(Command::Connect { id, other })
+    }
+    pub fn block(content: &str, id: i32) -> Result<Command<T>, ()> {
+        let other = content.parse().unwrap();
+
+        Ok(Command::Block { id, other })
+    }
+    pub fn unblock(content: &str, id: i32) -> Result<Command<T>, ()> {
+        let other = content.parse().unwrap();
+
+        Ok(Command::Unblock { id, other })
     }
     pub fn a(content: &str, id: i32) -> Result<Command<T>, ()> {
         println!("A {content}");
