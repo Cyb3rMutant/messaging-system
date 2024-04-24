@@ -75,7 +75,10 @@ impl<T: AsyncWriteExt> Container<T> {
     }
 
     pub fn remove(&mut self, id: i32) {
-        let node = *self.nodes.get(&id).unwrap();
+        let node = *match self.nodes.get(&id) {
+            Some(n) => n,
+            None => return,
+        };
         self.network[node].loguot();
     }
 
@@ -124,6 +127,10 @@ impl<T: AsyncWriteExt> Container<T> {
             return self.network[u].id;
         }
         i32::default()
+    }
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+        self.network.clear();
     }
 
     pub async fn send(&mut self, id: i32, message: &str) {

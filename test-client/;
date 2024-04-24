@@ -1,0 +1,183 @@
+use std::{
+    fmt::Debug,
+    i32,
+    io::{BufRead, BufReader, Write},
+    net::TcpStream,
+    str::FromStr,
+};
+
+struct Client {
+    id: i32,
+    reader: BufReader<TcpStream>,
+    writer: TcpStream,
+}
+
+impl Client {
+    pub fn init() -> Client {
+        let stream = TcpStream::connect("127.0.0.1:8080").unwrap();
+        let writer = stream.try_clone().unwrap();
+        let reader = BufReader::new(stream);
+
+        Client {
+            id: 0,
+            reader,
+            writer,
+        }
+    }
+
+    #[allow(dead_code)]
+    fn reg_and_login(&mut self, i: usize) {
+        self.send(format!("REG;USR{i};PASS{i}\n"));
+        let reply = self.receive();
+        check_command(&reply, "REG");
+
+        self.send(format!("LGN;USR{i};PASS{i}\n"));
+        let reply = self.receive();
+        check_command(&reply, "LGN");
+        check_number_of_arguments(&reply, 3);
+
+        self.id = extract_arg::<i32>(&reply, 0);
+    }
+
+    #[allow(dead_code)]
+    fn connect(&mut self, other: &mut Client) -> i32 {
+        self.send(format!("CNT;{}\n", other.id));
+
+        let r1 = self.receive();
+        let r2 = other.receive();
+
+        assert_eq!(extract_arg::<i32>(&r1, 0), extract_arg::<i32>(&r2, 0));
+        assert_eq!(extract_arg::<i32>(&r1, 1), other.id);
+        assert_eq!(extract_arg::<i32>(&r2, 1), self.id);
+
+        extract_arg::<i32>(&r1, 0)
+    }
+
+    fn send(&mut self, command: String) {
+        self.writer
+            .write_all(command.as_bytes())
+            .expect("Failed to send message to the server");
+    }
+
+    fn receive(&mut self) -> String {
+        let mut buf = String::new();
+        if self.reader.read_line(&mut buf).unwrap() == 0 {
+            panic!("server died");
+        }
+        buf
+    }
+
+    #[allow(dead_code)]
+    fn clean() {
+        let mut client = Self::init();
+        client.send(format!("TESTINGCLEAR;\n"));
+    }
+}
+#[allow(dead_code)]
+fn connect() -> (Client, Client, i32) {
+    let mut c1 = init();
+    let mut c2 = init();
+
+    c1.reg_and_login(1);
+    c2.reg_and_login(2);
+
+    let c = c1.connect(&mut c2);
+    (c1, c2, c)
+}
+
+#[allow(dead_code)]
+fn check_command(payload: &str, command: &str) {
+    let (c, _) = payload.trim().split_once(';').unwrap();
+    assert_eq!(command, c);
+}
+#[allow(dead_code)]
+fn check_number_of_arguments(payload: &str, noa: usize) {
+    let (_, payload) = payload.trim().split_once(';').unwrap();
+    assert_eq!(noa, payload.split(';').count());
+}
+#[allow(dead_code)]
+fn extract_arg<T: FromStr>(payload: &str, idx: usize) -> T
+where
+    <T as FromStr>::Err: Debug,
+{
+    let (_, payload) = payload.trim().split_once(';').unwrap();
+    let payload: Vec<&str> = payload.split(';').collect();
+    payload.get(idx).unwrap().parse::<T>().unwrap()
+}
+
+#[allow(dead_code)]
+fn clean() {
+    Client::clean();
+}
+#[allow(dead_code)]
+fn init() -> Client {
+    Client::init()
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    // #[test]
+    // fn connect_once() {
+    //     clean();
+    //     let mut c = init();
+    //     c.reg_and_login(1);
+    //     clean();
+    // }
+
+    // #[test]
+    // fn connect_10_times() {
+    //     clean();
+    //     let mut v = Vec::new();
+    //
+    //     for n in 0..10 {
+    //         let mut c = init();
+    //         c.reg_and_login(n);
+    //
+    //         c.send(format!("GET;ALL\n"));
+    //         let reply = c.receive();
+    //         check_command(&reply, "ALL");
+    //         check_number_of_arguments(
+    //             &reply,
+    //             match n {
+    //                 0 | 1 => n + 1,
+    //                 _ => (n + 1) * 2 - 2,
+    //             },
+    //         );
+    //
+    //         v.push(c);
+    //     }
+    //     clean();
+    // }
+
+    // #[test]
+    // fn connecting_2_users() {
+    //     clean();
+    //     let mut c1 = init();
+    //     let mut c2 = init();
+    //
+    //     c1.reg_and_login(1);
+    //     c2.reg_and_login(2);
+    //
+    //     c1.connect(&mut c2);
+    //
+    //     clean();
+    // }
+    #[test]
+    fn send_message() {
+        clean();
+        let (mut c1, mut c2, id) = connect();
+
+        c1.send(format!("SND;{id};hello\n"));
+        let r1 = c1.receive();
+        let r2 = c2.receive();
+        check_command(&r1, "MID");
+        check_number_of_arguments(&r1, 1);
+        check_command(&r2, "MSG");
+        check_number_of_arguments(&r2, 3);
+
+        clean();
+    }
+}
