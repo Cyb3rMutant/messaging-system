@@ -19,7 +19,7 @@ function getChat() {
   var button = document.querySelector('input[name="friends"]:checked');
   var user = parseInt(button.value);
   button.className = "";
-  invoke("switch_chat", { user: user }).then(function (messages) {
+  invoke("switch_chat", { user: user }).then(function(messages) {
     console.log(messages, typeof messages);
 
     document.getElementById("container").innerHTML = "";
@@ -164,7 +164,7 @@ function displayMessage(message_id, from_me, content, status) {
   if (from_me && status != 3) {
     var deleteButton = document.createElement("button");
     deleteButton.textContent = "Delete";
-    deleteButton.onclick = function () {
+    deleteButton.onclick = function() {
       // Call delete function
       deleteMessage(message_id);
     };
@@ -232,7 +232,7 @@ listen("BKS", (message) => {
   var friendsList = document.getElementById("blocked");
   for (var i = 0; i < arr.length; i += 2) {
     console.log(arr[i], document.getElementById(arr[i]));
-    (function (index) {
+    (function(index) {
       // Create a new scope
       var listItem = document.createElement("li");
 
@@ -240,7 +240,7 @@ listen("BKS", (message) => {
       button.id = "ub" + arr[index];
       button.value = arr[index + 1];
       button.textContent = "unblock";
-      button.onclick = function () {
+      button.onclick = function() {
         console.log(arr[index]); // Use the captured index
         unblock(parseInt(arr[index]));
       };
@@ -262,7 +262,7 @@ listen("ALL", (message) => {
   var friendsList = document.getElementById("all");
   for (var i = 0; i < arr.length; i += 2) {
     console.log(arr[i], document.getElementById(arr[i]));
-    (function (index) {
+    (function(index) {
       // Create a new scope
       var listItem = document.createElement("li");
 
@@ -270,7 +270,7 @@ listen("ALL", (message) => {
       friend_button.id = "u" + arr[index];
       friend_button.value = arr[index + 1];
       friend_button.textContent = "add friend";
-      friend_button.onclick = function () {
+      friend_button.onclick = function() {
         console.log(arr[index]); // Use the captured index
         connect(parseInt(arr[index]));
       };
@@ -279,7 +279,7 @@ listen("ALL", (message) => {
       block_button.id = "b" + arr[index];
       block_button.value = arr[index + 1];
       block_button.textContent = "block";
-      block_button.onclick = function () {
+      block_button.onclick = function() {
         console.log(arr[index]); // Use the captured index
         block(parseInt(arr[index]));
       };
@@ -491,7 +491,6 @@ listen("CNT", (message) => {
   }
   l.appendChild(listItem);
   document.getElementById("u" + user_id).parentElement.remove();
-  invoke("send_a", { user: chat_id, a: a });
 });
 listen("BLK", (message) => {
   console.log(message, message.payload);
@@ -528,7 +527,7 @@ function search() {
   // displayMessage(0, true, messageText, 1);
 
   invoke("search", { user: user, message: messageText }).then(
-    function (messages) {
+    function(messages) {
       console.log(messages, typeof messages);
       search_arr = messages;
       search_idx = 0;

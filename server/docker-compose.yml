@@ -21,6 +21,8 @@ services:
       MYSQL_DATABASE: messaging # Automatically create the 'HC' database
     restart: unless-stopped
     command: --sql-mode="STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+    # ports:
+    #   - "3306:3306"
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./db.sql:/docker-entrypoint-initdb.d/db.sql # Load db.sql on initialization

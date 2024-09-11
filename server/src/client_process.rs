@@ -121,8 +121,8 @@ impl<T: AsyncReadExt + AsyncWriteExt> Process<T> {
             _ => (),
         }
         let Some((command, content)) = buf.trim().split_once(';') else {
-                return Err(());
-                    };
+            return Err(());
+        };
         println!("{command} {content}");
         match command {
             "TESTINGCLEAR" => {
@@ -137,7 +137,6 @@ impl<T: AsyncReadExt + AsyncWriteExt> Process<T> {
             "STS" => Command::status(content, self.id),
             "DEL" => Command::delete(content, self.id),
             "UPD" => Command::update(content, self.id),
-            "A" => Command::a(content, self.id),
 
             _ => Err(()),
         }

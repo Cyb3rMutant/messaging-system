@@ -20,10 +20,7 @@ pub fn send(user: i32, message: String, sender: State<'_, Sender>, chats: State<
 
     let mut c = chats.0.write().unwrap();
     println!("in sending 2 ");
-    let s_message = xor_encrypt(
-        &message,
-        modular_pow(c.get_b(user) as u64, c.get_a() as u64, user as u64) as i32,
-    );
+    let s_message = xor_encrypt(&message, modular_pow(6, 9, user as u64) as i32);
     // drop(chats);
 
     writer
@@ -78,7 +75,6 @@ pub fn login(
     sender: State<'_, Sender>,
     chats: State<'_, GlobalChats>,
 ) {
-    chats.0.write().unwrap().set_a(password.len() as i32);
     let mut writer = sender.0.lock().unwrap();
     writer
         .write_all(format!("LGN;{};{}\n", username, password).as_bytes())
@@ -112,10 +108,7 @@ pub fn update(
     chats.0.write().unwrap().update(user, message_id, &content);
     let mut writer = sender.0.lock().unwrap();
     let c = chats.0.write().unwrap();
-    let content = xor_encrypt(
-        &content,
-        modular_pow(c.get_b(user) as u64, c.get_a() as u64, user as u64) as i32,
-    );
+    let content = xor_encrypt(&content, modular_pow(6, 9, user as u64) as i32);
     // drop(c);
     writer
         .write_all(format!("UPD;{user};{message_id};{content}\n").as_bytes())
@@ -143,14 +136,5 @@ pub fn unblock(id: i32, sender: State<'_, Sender>) {
     let mut writer = sender.0.lock().unwrap();
     writer
         .write_all(format!("UBK;{id}\n").as_bytes())
-        .expect("Failed to send message to the server");
-}
-
-#[tauri::command]
-pub fn send_a(user: i32, a: i32, sender: State<'_, Sender>) {
-    let mut writer = sender.0.lock().unwrap();
-    println!("{a}");
-    writer
-        .write_all(format!("A;{user};{a}\n").as_bytes())
         .expect("Failed to send message to the server");
 }

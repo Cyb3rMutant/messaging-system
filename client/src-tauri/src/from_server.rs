@@ -31,7 +31,6 @@ pub async fn read_messages(app: AppHandle, mut reader: BufReader<TcpStream>) {
             "UPD" => update(content, &app),
             "BLK" => block(content, &app),
             "MID" => message_sent(content, &app),
-            "B" => b(content, &app),
             "REG" => app.emit_all("REG", content).unwrap(),
             "ERR" => app.emit_all("ERR", content).unwrap(),
 
@@ -47,10 +46,7 @@ fn receive(content: &str, app: &AppHandle) {
     let message_id: i32 = args.get(1).unwrap().parse().unwrap();
     let content = args.get(2).unwrap();
     println!("{content}");
-    let content = xor_encrypt(
-        &content,
-        modular_pow(chats.get_b(id) as u64, chats.get_a() as u64, id as u64) as i32,
-    );
+    let content = xor_encrypt(&content, modular_pow(6, 9, id as u64) as i32);
     println!("{content}");
 
     let message = chats.received_message(id, message_id, content);
@@ -62,13 +58,10 @@ fn connect(content: &str, app: &AppHandle) {
     let args: Vec<&str> = content.split(';').collect();
     let chat_id: i32 = args.get(0).unwrap().parse().unwrap();
     let user_id: i32 = args.get(1).unwrap().parse().unwrap();
-    let g: i32 = args.get(2).unwrap().parse().unwrap();
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
-    chats.add_chat(chat_id, g, 0);
-    let a = modular_pow(g as u64, chats.get_a() as u64, chat_id as u64) as i32;
-
-    app.emit_all("CNT", (chat_id, user_id, a)).unwrap();
+    chats.add_chat(chat_id);
+    app.emit_all("CNT", (chat_id, user_id)).unwrap();
 }
 
 fn friends<'a>(content: &'a str, app: &AppHandle) {
@@ -85,13 +78,13 @@ fn all<'a>(content: &'a str, app: &AppHandle) {
 
 fn logged_in(content: &str, app: &AppHandle) {
     let (id, chats) = content.split_once(';').unwrap();
-    let (chats_p_g, messages) = chats.split_once(';').unwrap();
+    let (chats_ids, messages) = chats.split_once(';').unwrap();
     let id = id.parse::<i32>().unwrap();
-    println!("{}\t\t{}\t\t{chats_p_g}", id, messages);
+    println!("{}\t\t{}\t\t{chats_ids}", id, messages);
     let state = app.state::<GlobalChats>();
     let mut chats = state.0.write().unwrap();
     chats.set_id(id);
-    chats.load(messages, chats_p_g);
+    chats.load(messages, chats_ids);
 
     app.emit_all("LGN", id).unwrap();
 }
@@ -123,10 +116,7 @@ fn update(content: &str, app: &AppHandle) {
     let id: i32 = args.get(0).unwrap().parse().unwrap();
     let message_id: i32 = args.get(1).unwrap().parse().unwrap();
     let content = args.get(2).unwrap();
-    let content = xor_encrypt(
-        &content,
-        modular_pow(chats.get_b(id) as u64, chats.get_a() as u64, id as u64) as i32,
-    );
+    let content = xor_encrypt(&content, modular_pow(6, 9, id as u64) as i32);
     chats.update(id, message_id, &content);
 
     app.emit_all("UPD", (id, message_id, content)).unwrap();
@@ -151,14 +141,4 @@ fn message_sent(content: &str, app: &AppHandle) {
 
     app.emit_all("MID", (user, message)).unwrap();
     println!("message sent 6 ");
-}
-
-fn b(content: &str, app: &AppHandle) {
-    let (chat_id, b) = content.split_once(';').unwrap();
-    let chat_id: i32 = chat_id.parse().unwrap();
-    let b: i32 = b.parse().unwrap();
-
-    let state = app.state::<GlobalChats>();
-    let mut chats = state.0.write().unwrap();
-    chats.set_b(chat_id, b);
 }

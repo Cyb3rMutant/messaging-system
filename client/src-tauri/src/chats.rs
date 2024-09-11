@@ -24,9 +24,8 @@ struct ServerMessage {
 #[derive(Debug)]
 pub struct Chats {
     me: i32,
-    chats: HashMap<i32, (VecDeque<Message>, i32, i32)>,
+    chats: HashMap<i32, VecDeque<Message>>,
     pending_messages: VecDeque<(i32, Message)>,
-    a: i32,
 }
 
 impl Chats {
@@ -35,31 +34,17 @@ impl Chats {
             me: i32::default(),
             chats: HashMap::new(),
             pending_messages: VecDeque::new(),
-            a: 0,
         }
     }
 
     pub fn set_id(&mut self, id: i32) {
         self.me = id;
     }
-    pub fn set_a(&mut self, a: i32) {
-        self.a = a;
-    }
-    pub fn set_b(&mut self, user: i32, b: i32) {
-        self.chats.get_mut(&user).unwrap().2 = b;
-    }
-    pub fn get_a(&self) -> i32 {
-        self.a
-    }
-    pub fn get_b(&self, user: i32) -> i32 {
-        self.chats.get(&user).unwrap().2
-    }
-
-    pub fn add_chat(&mut self, chat_id: i32, g: i32, b: i32) {
+    pub fn add_chat(&mut self, chat_id: i32) {
         if self.chats.contains_key(&chat_id) {
             return;
         }
-        self.chats.insert(chat_id, (VecDeque::new(), g, b));
+        self.chats.insert(chat_id, VecDeque::new());
     }
 
     fn add_message(
@@ -78,7 +63,7 @@ impl Chats {
         };
         println!("{:?}", self.chats);
         match self.chats.get_mut(&user) {
-            Some((chat, _g, _b)) => {
+            Some(chat) => {
                 chat.push_back(message.clone());
             }
             None => {
@@ -103,7 +88,7 @@ impl Chats {
     pub fn sent_message(&mut self, message_id: i32) -> (i32, Message) {
         let (user, mut m) = self.pending_messages.pop_front().unwrap();
         m.message_id = message_id;
-        self.chats.get_mut(&user).unwrap().0.push_back(m.clone());
+        self.chats.get_mut(&user).unwrap().push_back(m.clone());
         (user, m)
     }
 
@@ -113,7 +98,7 @@ impl Chats {
 
     pub fn get_chat(&self, user: i32) -> &VecDeque<Message> {
         println!("{:?}", self.chats.get(&user).unwrap());
-        &self.chats.get(&user).unwrap().0
+        &self.chats.get(&user).unwrap()
     }
 
     pub fn is_me(&self, user: i32) -> bool {
@@ -122,22 +107,15 @@ impl Chats {
 
     pub fn load(&mut self, messages: &str, chats: &str) {
         let messages: Vec<ServerMessage> = serde_json::from_str(messages).unwrap();
-        let empty_chats: Vec<(i32, i32, i32)> = serde_json::from_str(chats).unwrap();
-        for (p, g, b) in empty_chats {
-            self.add_chat(p, g, b);
+        let empty_chats: Vec<i32> = serde_json::from_str(chats).unwrap();
+        for p in empty_chats {
+            self.add_chat(p);
         }
         for m in messages.into_iter() {
             self.add_message(
                 m.chat_id,
                 m.message_id,
-                xor_encrypt(
-                    &m.content,
-                    modular_pow(
-                        self.get_b(m.chat_id) as u64,
-                        self.get_a() as u64,
-                        m.chat_id as u64,
-                    ) as i32,
-                ),
+                xor_encrypt(&m.content, modular_pow(6, 9, m.chat_id as u64) as i32),
                 self.is_me(m.sender_id),
                 m.status,
             );
@@ -151,7 +129,7 @@ impl Chats {
     }
     fn set_read(&mut self, user: i32, from_me: bool) {
         println!("{:?} {:?}", self.chats, user);
-        for m in self.chats.get_mut(&user).unwrap().0.iter_mut().rev() {
+        for m in self.chats.get_mut(&user).unwrap().iter_mut().rev() {
             if m.from_me != from_me {
                 continue;
             }
@@ -162,7 +140,7 @@ impl Chats {
         }
     }
     pub fn delete(&mut self, user: i32, message_id: i32) {
-        for m in self.chats.get_mut(&user).unwrap().0.iter_mut().rev() {
+        for m in self.chats.get_mut(&user).unwrap().iter_mut().rev() {
             if m.message_id != message_id {
                 continue;
             }
@@ -172,7 +150,7 @@ impl Chats {
         }
     }
     pub fn update(&mut self, user: i32, message_id: i32, content: &str) {
-        for m in self.chats.get_mut(&user).unwrap().0.iter_mut().rev() {
+        for m in self.chats.get_mut(&user).unwrap().iter_mut().rev() {
             if m.message_id != message_id {
                 continue;
             }

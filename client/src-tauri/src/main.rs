@@ -43,7 +43,6 @@ fn main() {
             read_chat,
             delete,
             update,
-            send_a,
             block,
             unblock
         ])

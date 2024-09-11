@@ -46,8 +46,8 @@ impl<T: AsyncWriteExt> Manager<T> {
                         println!("in\n");
                         let mut clients = self.clients.lock().await;
                         let messages = self.model.load_messages(id).await;
-                        let p_g = self.model.chats_p_g_B(id).await;
-                        match clients.login(id, writer, messages, p_g).await {
+                        let chats = self.model.chats(id).await;
+                        match clients.login(id, writer, messages, chats).await {
                             Ok(_) => {
                                 println!("{id}");
                                 let _ = sender.send(Ok(id));
@@ -95,10 +95,10 @@ impl<T: AsyncWriteExt> Manager<T> {
                 }
                 Connect { id, other } => {
                     let mut clients = self.clients.lock().await;
-                    let (p, g) = self.model.connect(id, other).await;
-                    clients.add_friends(id, other, p);
-                    clients.send(id, &format!("CNT;{p};{other};{g}\n")).await;
-                    clients.send(other, &format!("CNT;{p};{id};{g}\n")).await;
+                    let chat_id = self.model.connect(id, other).await;
+                    clients.add_friends(id, other, chat_id);
+                    clients.send(id, &format!("CNT;{chat_id};{other}\n")).await;
+                    clients.send(other, &format!("CNT;{chat_id};{id}\n")).await;
                 }
                 Block { id, other } => {
                     let mut clients = self.clients.lock().await;
@@ -164,13 +164,6 @@ impl<T: AsyncWriteExt> Manager<T> {
                             ),
                         )
                         .await;
-                }
-                A { chat_id, id, A } => {
-                    println!("A - {chat_id}, {A}");
-                    let mut clients = self.clients.lock().await;
-                    let receiver = clients.get_other(chat_id, id);
-                    self.model.set_ab(chat_id, id, A).await;
-                    clients.send(receiver, &format!("B;{chat_id};{A}\n")).await;
                 }
                 Testing_Clear => {
                     if self.testing {

@@ -83,23 +83,11 @@ impl Model {
         .await
         .unwrap()
     }
-    pub async fn chats_p_g_B(&self, id: i32) -> Vec<(i32, i32, i32)> {
+    pub async fn chats(&self, id: i32) -> Vec<i32> {
         query!(
             r#"
             SELECT
-                chat_id AS p,
-                (
-                SELECT
-                    (user_id_1 + user_id_2)
-                FROM
-                    chats
-                WHERE
-                    chat_id = c.chat_id - 1
-                ) AS g,
-        CASE
-            WHEN user_id_1 = ? THEN A
-            WHEN user_id_2 = ? THEN B
-        END AS b
+                chat_id
             FROM
                 chats c
             WHERE
@@ -107,15 +95,13 @@ impl Model {
                 OR user_id_2 = ?;
             "#,
             id,
-            id,
-            id,
             id
         )
         .fetch_all(&self.pool)
         .await
         .unwrap()
         .into_iter()
-        .map(|c| (c.p, c.g.unwrap_or(1) as i32, c.b.unwrap_or(1)))
+        .map(|c| (c.chat_id))
         .collect()
     }
 
@@ -223,15 +209,9 @@ impl Model {
         .last_insert_id();
         Ok(id as i32)
     }
-    pub async fn connect(&self, id: i32, other: i32) -> (i32, i32) {
-        let g = query!("SELECT MAX(chat_id) as c, (user_id_1 + user_id_2) as g FROM chats;")
-            .fetch_one(&self.pool)
-            .await
-            .unwrap()
-            .g
-            .unwrap_or(1) as i32;
-        let p = query!(
-            " INSERT INTO chats (user_id_1, user_id_2) VALUES (?, ?)",
+    pub async fn connect(&self, id: i32, other: i32) -> i32 {
+        let chat_id = query!(
+            "INSERT INTO chats (user_id_1, user_id_2) VALUES (?, ?)",
             id,
             other
         )
@@ -240,7 +220,7 @@ impl Model {
         .unwrap()
         .last_insert_id() as i32;
 
-        (p, g)
+        chat_id
     }
     pub async fn block(&self, id: i32, other: i32) {
         query!(
@@ -301,23 +281,6 @@ impl Model {
             "UPDATE messages SET status = 4, content = ? WHERE message_id = ?",
             message.content,
             message.message_id
-        )
-        .execute(&self.pool)
-        .await
-        .unwrap();
-    }
-
-    pub async fn set_ab(&self, chat_id: i32, id: i32, val: i32) {
-        query!(
-            "UPDATE chats
-                SET A = CASE WHEN user_id_1 = ? THEN ? ELSE A END,
-                B = CASE WHEN user_id_2 = ? THEN ? ELSE B END 
-                WHERE chat_id = ?",
-            id,
-            val,
-            id,
-            val,
-            chat_id
         )
         .execute(&self.pool)
         .await

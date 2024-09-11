@@ -59,11 +59,11 @@ impl<T: AsyncWriteExt> Container<T> {
         id: i32,
         writer: WriteHalf<T>,
         messages: Vec<Message>,
-        p_g_b: Vec<(i32, i32, i32)>,
+        ids: Vec<i32>,
     ) -> Result<(), WriteHalf<T>> {
         let messages = serde_json::to_string(&messages).unwrap();
-        let p_g = serde_json::to_string(&p_g_b).unwrap();
-        let message = format!("LGN;{};{};{}\n", id, p_g, messages);
+        let ids = serde_json::to_string(&ids).unwrap();
+        let message = format!("LGN;{};{};{}\n", id, ids, messages);
         let node = *self.nodes.get(&id).unwrap();
         match self.network[node].login(writer) {
             Ok(_) => {

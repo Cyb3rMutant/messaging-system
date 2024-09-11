@@ -1,5 +1,5 @@
 # Base image
-FROM rust:latest AS build
+FROM rust:slim AS build
 
 WORKDIR /app
 
