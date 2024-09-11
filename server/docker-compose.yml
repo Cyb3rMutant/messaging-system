@@ -1,0 +1,34 @@
+services:
+  messaging:
+    image: messaging
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "7878:7878"
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    entrypoint: ["./entrypoint.sh"]
+  # "db" service
+  db:
+    # Name of the image to be pulled from Docker Hub.
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: p
+      MYSQL_DATABASE: messaging # Automatically create the 'HC' database
+    restart: unless-stopped
+    command: --sql-mode="STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db.sql:/docker-entrypoint-initdb.d/db.sql # Load db.sql on initialization
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+volumes:
+  db_data:

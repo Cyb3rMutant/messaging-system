@@ -10,10 +10,9 @@ pub struct Model {
 
 impl Model {
     pub async fn new(db: &str) -> Self {
-        let pool =
-            sqlx::mysql::MySqlPool::connect(format!("mysql://yazeed@localhost:3306/{db}").as_str())
-                .await
-                .unwrap();
+        let pool = sqlx::mysql::MySqlPool::connect(format!("mysql://root:p@db:3306/{db}").as_str())
+            .await
+            .unwrap();
         Self { pool }
     }
     pub async fn load_lonely(&self) -> Vec<(i32, String)> {

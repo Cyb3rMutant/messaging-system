@@ -18,7 +18,7 @@ pub struct Manager<T: AsyncWriteExt> {
 
 impl<T: AsyncWriteExt> Manager<T> {
     pub async fn new(rx: mpsc::Receiver<Command<T>>) -> Self {
-        let db = "testing";
+        let db = "messaging";
         let model = Model::new(db).await;
 
         let clients = Container::new(model.load_chats().await, model.load_lonely().await);

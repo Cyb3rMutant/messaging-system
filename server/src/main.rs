@@ -3,8 +3,8 @@ use tokio::{net::TcpListener, sync::mpsc};
 
 #[tokio::main]
 async fn main() {
-    let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
-    println!("Server listening on 127.0.0.1:8080");
+    let listener = TcpListener::bind("127.0.0.1:7878").await.unwrap();
+    println!("Server listening on 127.0.0.1:7878");
 
     let (tx, rx) = mpsc::channel(32);
 
